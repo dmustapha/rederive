@@ -24,21 +24,45 @@ recompute is printed red and blocks. Deviations that alter a real path (a bound 
 fallback) are recorded here — never fabricated as a pass.
 
 ### DT-8 — Sibyl deep-API method-name binding (recorded at C0/T0.2b)
-`dir(MemoryClient)` deep-tier surface (exact list captured at build):
+`dir(MemoryClient)` deep-tier surface — exact list captured at build on sibyl-memory-client 0.8.1
+(filter: any of state/entity/event/reference/archive/delete/search/recall/query in the name):
 
 ```
-(filled at T0.2 verification — the exact dir(MemoryClient) list feeding DT-8)
+['__getstate__', '_row_to_entity', '_search_rows', '_search_strict', 'archive_entity',
+ 'delete_entity', 'get_entity', 'get_reference', 'get_state', 'read_events', 'search',
+ 'search_entities', 'set_entity', 'set_reference', 'set_state', 'write_event']
 ```
 
-Bindings:
-- HOT (cursor): `set_state` / `get_state` — (bound name recorded at T0.2b)
-- WARM (cache): `set_entity` / `get_entity` — (bound name recorded at T0.2b)
-- COLD (journal): `write_event` / `read_events` — (bound name recorded at T0.2b)
-- REFERENCE (doctrine): `set_reference` / `get_reference` — (bound name recorded at T0.2b)
-- ARCHIVE vs DELETE: `archive_entity` / `delete_entity` — (bound name recorded at T0.2b)
-- FTS5 recall: `search` / `recall` — (bound name or journal-fallback recorded at T0.2b)
+Full public method surface (for completeness): accept_skill_proposal, archive_entity, delete_entity,
+free_tier_status, get_entity, get_reference, get_state, get_tenant, get_tier, learn, learner, lint,
+list_entities, list_skill_proposals, local, read_events, reject_skill_proposal, schema_version, search,
+search_entities, set_entity, set_reference, set_state, set_tenant, set_tier, write_event.
 
-### Recorded deviations (DT-A amnesia close-attr, recall fallback, version drift)
-| DEV | Component | Deviation | Class | Recorded at |
-|---|---|---|---|---|
-| (none yet — filled as encountered) | | | | |
+Bindings (every assumed tier name PRESENT — no rename needed; search() EXISTS so recall uses the primary branch):
+- HOT (cursor): `set_state("run", …)` / `get_state("run")` — BOUND (primary).
+- WARM (cache): `set_entity(cat,name,body)` / `get_entity(cat,name)` — BOUND (primary).
+- COLD (journal): `write_event(evaluated=,acted=,extra=)` (keyword-only) / `read_events(limit=)` — BOUND.
+- REFERENCE (doctrine): `set_reference(key,body)` / `get_reference(key)` — BOUND.
+- ARCHIVE vs DELETE: `archive_entity(cat,name,reason=None)` / `delete_entity(cat,name)` — BOUND.
+- FTS5 recall: `search(query, *, limit=20, prefix=False, tiers=None)` — BOUND to the PRIMARY branch
+  (returns a SearchResults iterable of dicts with `tier`/`body`/`snippet`). Journal-FTS fallback is
+  retained and unit-tested (`test_recall::test_recall_journal_fallback_when_no_sdk_search`).
+
+SDK-semantics deviations discovered while binding (real paths, recorded — never fabricated):
+- **DEV-002**: `get_reference` / `get_state` return **None** when the key is absent (they do NOT raise
+  `NotFoundError` like `get_entity` does). `unit_cost`/`get_cursor`/`seed_doctrine` guard both None and
+  NotFoundError. Tiers stay load-bearing.
+- **DEV-003**: `archive_entity` moves the record to a separate ARCHIVE store and exposes **no read-back**
+  (`get_entity` has no `include_archived`; `list_entities(status=…)` does not surface archived rows;
+  archive_entity returns only `{archived_id, original_id}`). `restore_archived` reconstructs the
+  superseded conclusion from the append-only COLD journal (the real recoverable audit trail, NN-3).
+- **DEV-004**: `get_reference` returns its **body as a JSON string** (entity/state bodies are dicts).
+  `_ref_body()` json-loads it before field access.
+
+### Recorded deviations (DT-A amnesia close-attr, recall fallback, SDK semantics, version drift)
+| DEV | Component | ARCHITECTURE said | ACTUAL | Class | Recorded at |
+|---|---|---|---|---|---|
+| DEV-002 | engine `get_reference`/`get_state` not-found | catch `NotFoundError` | returns `None` (no raise); guarded for both | UNTESTED→FIXED | T0.2b |
+| DEV-003 | engine `restore_archived` | `get_entity(include_archived=True)` | no archive read-back API; reconstruct from COLD journal | DEGRADED | T0.2b |
+| DEV-004 | engine `unit_cost` REFERENCE body | `ref["body"]["unit_usd"]` (dict body) | REFERENCE body is a JSON string; `_ref_body` json-loads | COSMETIC→FIXED | T0.2b |
+| DEV-005 | build environment | Python 3.11.x (PLAN entry criteria) | only 3.14.6 on PATH → provisioned real 3.11.14 via `uv python install` | COSMETIC | T0.1 |
