@@ -42,17 +42,31 @@ class Engine:
         self._m = MemoryClient.local(self._db_path, tenant_id=self._tenant)
 
     def close(self):
+        # NN-5 / DT-A: release the SQLite fd BEFORE any rename, or the open fd keeps serving the
+        # renamed inode and fakes resilience. On client 0.8.1 the client has NO close(); the real
+        # connection lives in MemoryClient._storage.close() (thread-local conns + registry), probed
+        # via dir() at build (DEV-006). We try that first, then the assumed names, then a GC last
+        # resort (CPython closes sqlite3 on GC).
         m = getattr(self, "_m", None)
         if m is not None:
-            for attr in ("close", "_close"):
-                fn = getattr(m, attr, None)
-                if callable(fn):
-                    fn(); break
-            else:
+            closed = False
+            storage = getattr(m, "_storage", None)   # DT-A discovered path (client 0.8.1)
+            if storage is not None and callable(getattr(storage, "close", None)):
+                storage.close(); closed = True
+            if not closed:
+                for attr in ("close", "_close"):
+                    fn = getattr(m, attr, None)
+                    if callable(fn):
+                        fn(); closed = True; break
+            if not closed:
                 conn = getattr(m, "_conn", None) or getattr(m, "_db", None)
                 if conn is not None and hasattr(conn, "close"):
-                    conn.close()
+                    conn.close(); closed = True
         self._m = None
+        if m is not None:
+            import gc
+            del m
+            gc.collect()
 
     def amnesia(self) -> bool:
         """Deletion test: close -> rename db -> reopen empty. Returns db_present after."""
@@ -147,7 +161,11 @@ class Engine:
 
     # -- pricing (NN-2: the ONE code path; input = would-execute list) --
     def quote(self, graph: list[tuple[str, list[str], Callable]]) -> dict:
-        items = []
+        # The cone is TRANSITIVE: a stale source flips its direct derivations' keys, and any
+        # derivation reading a would-execute upstream is itself stale (topological order guarantees
+        # upstream is decided first). Quote is the conservative would-execute upper bound; early
+        # cutoff (unchanged re-derived value) is refunded at run time as `reused`, not here.
+        items, stale = [], set()
         for node, refs, _fn in graph:
             reads = []
             executes = False
@@ -161,7 +179,11 @@ class Engine:
                 executes = cached["body"]["key"] != key
             except NotFoundError:
                 executes = True
+            # transitive propagation: a would-execute upstream derivation invalidates this node
+            if any(r.startswith("derivation:") and r.split(":", 1)[1] in stale for r in refs):
+                executes = True
             if executes:
+                stale.add(node)
                 items.append({"node": node, "unit_usd": self.unit_cost()})  # REFERENCE-read doctrine price (NN-6)
         return {"total_usd": round(sum(i["unit_usd"] for i in items), 4),
                 "derived_count": len(items),

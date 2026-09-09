@@ -66,3 +66,5 @@ SDK-semantics deviations discovered while binding (real paths, recorded — neve
 | DEV-003 | engine `restore_archived` | `get_entity(include_archived=True)` | no archive read-back API; reconstruct from COLD journal | DEGRADED | T0.2b |
 | DEV-004 | engine `unit_cost` REFERENCE body | `ref["body"]["unit_usd"]` (dict body) | REFERENCE body is a JSON string; `_ref_body` json-loads | COSMETIC→FIXED | T0.2b |
 | DEV-005 | build environment | Python 3.11.x (PLAN entry criteria) | only 3.14.6 on PATH → provisioned real 3.11.14 via `uv python install` | COSMETIC | T0.1 |
+| DEV-006 | engine `close()` (DT-A) | probe `close`/`_close`/`_conn`/`_db` | client 0.8.1 has NONE; real fd is `MemoryClient._storage.close()` (thread-local conns) — added to the close loop + GC last resort | UNTESTED→FIXED | T0.3 (DT-A) |
+| DEV-007 | engine `quote()` cone | direct per-node cache-key check only | cone is TRANSITIVE — a would-execute upstream derivation invalidates downstream (topo order); quote is the conservative would-execute upper bound, cutoff refunded at run time as `reused`. `test_pricing` asserts `{na,nc}` | COSMETIC→FIXED | T0.3 |
