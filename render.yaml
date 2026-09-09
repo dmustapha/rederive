@@ -1,0 +1,22 @@
+# Render Blueprint — Rederive API+engine (single process, persistent SQLite memory.db).
+# Deploy target = Render (overrides forge D-8 Fly.io, per [DAMI] 2026-09-09).
+# NOTE: the `disk` below REQUIRES a paid instance (Starter+). Render free tier has NO
+# persistent disk and wipes the filesystem on spin-down — which would break cold-start
+# recall (the win-condition gate). Keep plan: starter (or higher) so memory.db persists.
+services:
+  - type: web
+    name: rederive-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter            # persistent disk requires a paid plan
+    healthCheckPath: /health
+    autoDeploy: false
+    disk:
+      name: rederive-data
+      mountPath: /data       # REDERIVE_DB=/data/memory.db (set in Dockerfile ENV)
+      sizeGB: 1
+    envVars:
+      - key: REDERIVE_DB
+        value: /data/memory.db
+      - key: PYTHONUNBUFFERED
+        value: "1"
