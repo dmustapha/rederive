@@ -68,3 +68,28 @@ SDK-semantics deviations discovered while binding (real paths, recorded — neve
 | DEV-005 | build environment | Python 3.11.x (PLAN entry criteria) | only 3.14.6 on PATH → provisioned real 3.11.14 via `uv python install` | COSMETIC | T0.1 |
 | DEV-006 | engine `close()` (DT-A) | probe `close`/`_close`/`_conn`/`_db` | client 0.8.1 has NONE; real fd is `MemoryClient._storage.close()` (thread-local conns) — added to the close loop + GC last resort | UNTESTED→FIXED | T0.3 (DT-A) |
 | DEV-007 | engine `quote()` cone | direct per-node cache-key check only | cone is TRANSITIVE — a would-execute upstream derivation invalidates downstream (topo order); quote is the conservative would-execute upper bound, cutoff refunded at run time as `reused`. `test_pricing` asserts `{na,nc}` | COSMETIC→FIXED | T0.3 |
+| DEV-009 | LLM stability metric (D-4) | §20 `stability_check.py` free-number 0-10 score → `FIELD-STABLE: True` | free-number score DRIFTED live on deepseek-v4-flash (values 8/5/5, `FIELD-STABLE: False`); tightened to a fixed ENUM `[poor,adequate,strong]` per D-4/D-5 → `FIELD-STABLE: True` (strong/strong/strong). Original unstable script kept as recorded evidence; `stability_check_tightened.py` is the passing harness. | DEGRADED→FIXED | T1.2 |
+| DEV-010 | scripts import path | `cd api && python scripts/…` (implicit) | `rederive` pkg not auto-on-path for scripts → run with `PYTHONPATH=.` from `api/` (pytest has its own rootdir; only the ad-hoc scripts need it) | COSMETIC | T1.1 |
+| DEV-011 | `recall` tier labels (DT-8) | tiers uppercased HOT/WARM/COLD/… | native `search()` returns the SDK's own tier tags `entity` (WARM) / `journal` (COLD); each hit still carries a `tier` label as required — labels are the real SDK values, recorded honestly not renamed | COSMETIC | T1.3 |
+
+### T1.1/T1.2 — LLM ladder + stability (C1, recorded at build)
+Probe run live (`AGENTROUTER_API_KEY`, real network, `python scripts/llm_ladder_probe.py`):
+```
+dead  claude-opus-4-8: Budget pool quota has been exhausted...
+dead  claude-opus-5: Budget pool quota has been exhausted...
+dead  gpt-5.6-sol: Budget pool quota has been exhausted...
+LIVE  deepseek-v4-flash: 'OK'
+```
+- **Live rung: `deepseek-v4-flash`** (premium opus-4-8/opus-5/gpt-5.6-sol pools exhausted this session; premium re-probed top-down every session per Dami directive — they may refill). glm-5.3 & ollama never reached (deepseek answered first). UA `claude-cli/2.0.14 (external, cli)` accepted byte-exact (D-3).
+- **glm-5.3 retry-guard:** the 2-attempt-per-rung schema retry in `complete_json` covers glm-5.3's known 1-in-3 parse fail (warroom); it was not reached this session because deepseek is a higher rung and live.
+- **D-4 stability (3× live through deepseek-v4-flash):**
+  - free-number 0-10 (§20 verbatim): `value=8`, `value=5`, `value=5` → **FIELD-STABLE: False** (DEV-009).
+  - tightened ENUM `[poor,adequate,strong]`: `strong`/`strong`/`strong` → **FIELD-STABLE: True** (D-4/D-5 mitigation confirmed).
+
+### T1.3 — DT-8 FTS5 recall (native `search()`, recorded at build)
+`dir(MemoryClient)` FTS filter: `['_search_rows', '_search_strict', 'search', 'search_entities']`.
+**Path in force: NATIVE `search(query=q, limit=limit)`** (primary branch, not journal-fallback). Proven on a real db `/tmp/t13.db`:
+```
+recall hits: 3 | tiers: ['entity', 'journal']
+```
+Each hit carries a `tier` label (SDK-native tags: `entity`=WARM cache, `journal`=COLD event — see DEV-011). Journal-FTS fallback retained + unit-tested for the no-`search` case.
