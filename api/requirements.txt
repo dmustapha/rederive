@@ -1,0 +1,15 @@
+sibyl-memory-client==0.8.1
+x402==2.22.0
+fastapi==0.115.0
+uvicorn==0.30.6
+httpx==0.27.2
+pydantic==2.9.2
+eth-account==0.13.4
+pytest==8.3.3
+# deep-integration extras — ALL cuttable, so ALL optional (a failed extra install must NOT kill the
+# core `pip install`). Install in a SEPARATE step (PLAN CX/C5) after DT-9/DT-10 confirm they resolve
+# against sibyl-memory-client==0.8.1; every consuming module is import-guarded (degrades to a no-op).
+# web3==7.4.0               # on-chain receipt anchoring (anchor.py, D-19)
+# sibyl-memory-langgraph    # LangGraph BaseStore adapter (D-16, langgraph_store.py)
+# langgraph                 # graph orchestration (D-16)
+# mcp                       # MCP stdio server (D-17, mcp_server.py)
