@@ -14,7 +14,7 @@ re-derives the price/count claims from `submission/receipt-*.json`; no unbacked 
 | fuzz 25/25 vs ground truth | CI run (`pytest api/tests -q`) + `tests/test_fuzz.py` | `cd api && python -m pytest tests/test_fuzz.py -q` | placeholder — proven green in CI |
 | five-tier coverage (all load-bearing, NN-6) | `tests/test_tiers.py` | `cd api && python -m pytest tests/test_tiers.py -q` | placeholder — filled at C0 |
 | commons attribution (multi-tenant, NN-7) | `tests/test_commons.py` | `cd api && python -m pytest tests/test_commons.py -q` | placeholder — wired at C2 (needs commons.py) |
-| FTS5 recall (D-13) | `tests/test_recall.py` | `cd api && python -m pytest tests/test_recall.py -q` | placeholder — filled at C0 |
+| FTS5 recall (D-13) | `tests/test_recall.py` | `cd api && python -m pytest tests/test_recall.py -q` | BOUND (native `search()`, DT-8) — re-proven on real db at T1.3: 3 hits, tiers `[entity,journal]` |
 | on-chain anchor tx (`h(receipt)` == calldata, NN-8) | submission/receipt-*.json + Base tx | `python api/scripts/verify_claims.py` + Basescan | placeholder — filled at deploy/CX |
 
 ## Honesty ledger (DT-8 method-name binding + recorded deviations)
