@@ -1,0 +1,33 @@
+{
+  "quoted_usd": 0.48,
+  "derived": [
+    "x_docs",
+    "x_github",
+    "x_token",
+    "x_team",
+    "x_community",
+    "x_audits",
+    "m_storage_arch",
+    "m_doc_quality",
+    "m_api_surface",
+    "m_commit_rate",
+    "m_test_coverage",
+    "m_bus_factor",
+    "m_supply_risk",
+    "m_utility",
+    "m_liquidity",
+    "m_team_track",
+    "m_transparency",
+    "m_sentiment",
+    "m_growth",
+    "m_audit_status",
+    "m_sec_incidents",
+    "s_risk",
+    "s_score",
+    "s_verdict"
+  ],
+  "reused": [],
+  "cutoff": [],
+  "errors": {},
+  "unit_usd_source": "REFERENCE:doctrine/pricing"
+}
