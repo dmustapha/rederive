@@ -7,9 +7,9 @@
 Agent-consumable due-diligence memory that re-derives **only what changed**.
 Built load-bearing on all five [Sibyl Memory](https://sibyllabs.org) tiers, metered with **x402 on Base**.
 
-**[▶ Live app](https://rederive-five.vercel.app)** · **[API](https://rederive-api.onrender.com/health)** · **[Base Sepolia settlements](https://sepolia.basescan.org/address/0xc211C942946011859ca634F22400d80570ED12A5)**
+**[▶ Live app](https://rederive-five.vercel.app)** · **[Operator console](https://rederive-five.vercel.app/console)** · **[API](https://rederive-api.onrender.com/health)** · **[Base Sepolia settlements](https://sepolia.basescan.org/address/0xc211C942946011859ca634F22400d80570ED12A5)**
 
-<img src="./screenshots/live/rederive-hero.png" alt="Rederive — the warm dossier graph, 100% memory reuse, $0.00" width="820" />
+<img src="./screenshots/live/rederive-hero.png" alt="Rederive — the landing page: incremental compilation for cognition, warm at $0.000" width="820" />
 
 </div>
 
@@ -21,7 +21,7 @@ A crypto-project due-diligence dossier is a graph: 6 raw sources → 6 extractio
 
 Rederive treats cognition like a **build system**. Each derivation is content-addressed by its inputs. Edit one source and only the **invalidation cone** downstream of it re-derives; everything else is served straight from memory at zero cost. It's Bazel/Vercel-style incremental compilation, but for an agent's reasoning.
 
-The paying consumer is a **machine** — another agent calls the metered `/answer` endpoint (x402, dynamic price = the live quote) or pulls the memory over **MCP** / **LangGraph**. The web UI is the human **operator console**: watch the DAG compile, edit a source, see the cone light up and the price drop.
+The paying consumer is a **machine** — another agent calls the metered `/answer` endpoint (x402, dynamic price = the live quote) or pulls the memory over **MCP** / **LangGraph**. The web app is the human window into it, in two pages: a **landing** that explains the model and shows the live graph, and an **operator console** (`/console`) with a two-step flow — edit a source, then re-run — to watch the invalidation cone light up and the price drop from cold to warm.
 
 ## Memory is load-bearing (the deletion test)
 
@@ -79,7 +79,7 @@ Every derivation, price, and provenance record lives in Sibyl Memory. Take it aw
 - **Pipeline** — [`api/rederive/pipeline.py`](./api/rederive/pipeline.py): the 24-node dossier graph + LLM extractors/metrics with stable-enum rubrics.
 - **Server** — [`api/rederive/server.py`](./api/rederive/server.py): FastAPI, 17 routes, x402 middleware, admin gating.
 - **Deep integration** — [`commons.py`](./api/rederive/commons.py) (multi-tenant), [`anchor.py`](./api/rederive/anchor.py) (NN-8 on-chain), [`langgraph_store.py`](./api/rederive/langgraph_store.py), [`mcp_server.py`](./api/rederive/mcp_server.py).
-- **UI** — [`web/`](./web): Next.js + reactflow operator console (the live DAG).
+- **UI** — [`web/`](./web): Next.js App Router, two pages — a landing ([`app/page.tsx`](./web/app/page.tsx)) and the reactflow operator console ([`app/console/page.tsx`](./web/app/console/page.tsx)) sharing one live-state hook ([`lib/useRederive.ts`](./web/lib/useRederive.ts)).
 
 ## Run it locally
 
