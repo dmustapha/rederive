@@ -4,6 +4,12 @@ Refuses read-back: recomputes from receipt JSONs + run reports, then diffs.
 Also enforces NN-8: recompute h(receipt) from the anchored receipt and match the anchor tx calldata."""
 import hashlib, json, pathlib, re, sys
 
+# Resolve submission/ relative to the repo ROOT (api/scripts/verify_claims.py -> parents[2]),
+# NOT the caller's cwd. Without this the script silently exits 0 ("MISSING") when run from api/
+# and a judge would mistake that false-negative for a pass. Falls back to ./submission otherwise.
+_ROOT = pathlib.Path(__file__).resolve().parents[2]
+_SUB = _ROOT / "submission" if (_ROOT / "submission").exists() else pathlib.Path("submission")
+
 
 def _receipt_hash(receipt: dict) -> str:
     """Hash the {derived,reused,cutoff} receipt exactly as anchor.py does (NN-8)."""
@@ -13,7 +19,7 @@ def _receipt_hash(receipt: dict) -> str:
 
 def _check_anchor() -> dict | None:
     """NN-8: recompute h(receipt) from receipt-anchored.json and match the committed calldata/hash."""
-    anchored = pathlib.Path("submission/receipt-anchored.json")
+    anchored = _SUB / "receipt-anchored.json"
     if not anchored.exists():
         return None
     r = json.loads(anchored.read_text())
@@ -22,8 +28,8 @@ def _check_anchor() -> dict | None:
     return {"anchor_tx": r.get("anchor_tx"), "recomputed_h": recomputed,
             "committed_h": committed, "NN8_MATCH": recomputed == committed}
 
-proof = pathlib.Path("submission/proof.md")
-receipts = sorted(pathlib.Path("submission").glob("receipt-*.json"))
+proof = _SUB / "proof.md"
+receipts = sorted(_SUB.glob("receipt-*.json"))
 if not proof.exists() or not receipts:
     sys.exit("MISSING: submission/proof.md or receipt-*.json — nothing to verify")
 claimed = dict(re.findall(r"CLAIM:([a-z_]+)=([\d.]+)", proof.read_text()))

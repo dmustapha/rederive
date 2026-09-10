@@ -11,7 +11,9 @@
   --text: #e2e8f0;
   --muted: #64748b;
   --muted-2: #475569;
-  --accent: #1d4ed8;
+  --accent: #22d3ee;          /* electric cyan — brand chrome (distinct from verdict-blue=derived) */
+  --accent-deep: #0e7490;
+  --accent-glow: rgba(34, 211, 238, 0.35);
   --r-sm: 6px;
   --r-md: 8px;
   --r-lg: 12px;
@@ -23,8 +25,10 @@
 }
 * { box-sizing: border-box; margin: 0; }
 body {
+  /* observability canvas: faint dot-grid over deep slate + a cyan corner bloom */
   background:
-    radial-gradient(1200px 600px at 80% -10%, #12203a 0%, transparent 60%),
+    radial-gradient(1100px 550px at 82% -12%, rgba(34, 211, 238, 0.06) 0%, transparent 58%),
+    radial-gradient(circle at center, var(--line) 0.9px, transparent 0.9px) 0 0 / 22px 22px,
     var(--bg);
   color: var(--text);
   font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
@@ -49,7 +53,7 @@ header {
 .brand { display: flex; align-items: baseline; gap: 14px; }
 header h1 {
   font-size: 20px; letter-spacing: 0.24em; font-weight: 700;
-  background: linear-gradient(90deg, #93c5fd, #e2e8f0);
+  background: linear-gradient(90deg, #22d3ee, #e2e8f0);
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
 header p { color: var(--muted); font-size: 13px; }
@@ -90,11 +94,6 @@ aside::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: var(-
   box-shadow: var(--e-1);
   transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
-.panel:hover {
-  border-color: var(--line-2);
-  box-shadow: var(--e-2);
-  transform: translateY(-1px);
-}
 .panel h3 {
   font-size: 11px; text-transform: uppercase; color: var(--muted);
   margin-bottom: 9px; letter-spacing: 0.12em; font-weight: 600;
@@ -124,31 +123,28 @@ aside::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: var(-
 }
 
 button {
-  background: linear-gradient(180deg, #2563eb, var(--accent));
-  border: 0; color: #fff; padding: 8px 14px; border-radius: var(--r-md);
-  cursor: pointer; font-size: 13px; font-weight: 500;
+  background: linear-gradient(180deg, #22d3ee, var(--accent-deep));
+  border: 0; color: #04141a; padding: 8px 14px; border-radius: var(--r-md);
+  cursor: pointer; font-size: 13px; font-weight: 600;
   box-shadow: var(--e-1);
   transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
 }
-button:hover { transform: translateY(-1px); box-shadow: var(--e-2); filter: brightness(1.08); }
 button:active { transform: translateY(0); }
-button.ghost { background: var(--line); color: #94a3b8; box-shadow: none; }
-button.ghost:hover { background: var(--line-2); color: var(--text); }
-button.danger { background: linear-gradient(180deg, #dc2626, #b91c1c); }
+button.ghost { background: var(--line); color: #94a3b8; box-shadow: none; font-weight: 500; }
+button.danger { background: linear-gradient(180deg, #dc2626, #b91c1c); color: #fff; }
 button:disabled { opacity: 0.5; cursor: wait; transform: none; filter: none; }
 
 input, select, textarea {
   background: var(--panel-2); border: 1px solid var(--line);
   color: var(--text); border-radius: var(--r-sm); padding: 7px 9px;
-  font-size: 13px; width: 100%; transition: border-color 0.12s ease, box-shadow 0.12s ease;
+  font-size: 16px; width: 100%; transition: border-color 0.12s ease, box-shadow 0.12s ease;
 }
-input:hover, select:hover, textarea:hover { border-color: var(--line-2); }
 textarea { resize: vertical; font-family: var(--mono); }
 
 :focus-visible {
   outline: none;
-  border-color: #3b82f6 !important;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35);
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
 .btn-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
@@ -208,5 +204,13 @@ textarea { resize: vertical; font-family: var(--mono); }
   word-break: break-all; margin: 6px 0; padding: 5px 7px;
   background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--r-sm);
 }
-.link { color: #60a5fa; font-size: 12px; text-decoration: none; }
-.link:hover { text-decoration: underline; }
+.link { color: var(--accent); font-size: 12px; text-decoration: none; }
+
+/* Hover affordances — only on hover-capable pointers (no sticky states on touch). */
+@media (hover: hover) {
+  .panel:hover { border-color: var(--line-2); box-shadow: var(--e-2); transform: translateY(-1px); }
+  button:hover { transform: translateY(-1px); box-shadow: var(--e-2); filter: brightness(1.08); }
+  button.ghost:hover { background: var(--line-2); color: var(--text); }
+  input:hover, select:hover, textarea:hover { border-color: var(--line-2); }
+  .link:hover { text-decoration: underline; }
+}

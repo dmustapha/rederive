@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 64" fill="none">
+  <rect x="2" y="2" width="60" height="60" rx="13" fill="#0b1220"/>
+  <line x1="20" y1="22" x2="44" y2="22" stroke="#1e293b" stroke-width="3" stroke-linecap="round"/>
+  <line x1="20" y1="22" x2="32" y2="44" stroke="#1e293b" stroke-width="3" stroke-linecap="round"/>
+  <line x1="44" y1="22" x2="32" y2="44" stroke="#22d3ee" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="20" cy="22" r="5" fill="#334155"/>
+  <circle cx="44" cy="22" r="5" fill="#334155"/>
+  <circle cx="32" cy="44" r="6.5" fill="#22d3ee"/>
+  <text x="78" y="42" font-family="ui-monospace,SF Mono,Menlo,monospace" font-size="30" font-weight="700">
+    <tspan fill="#22d3ee">Re</tspan><tspan fill="#e2e8f0">derive</tspan>
+  </text>
+</svg>

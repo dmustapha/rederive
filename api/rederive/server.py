@@ -194,8 +194,15 @@ def doctrine():
     DEV-004: client 0.8.1 round-trips REFERENCE bodies as a JSON string; parse via _ref_body
     (the engine's own helper) instead of subscripting ["body"] directly.
     """
-    return {"pricing": _ref_body(engine._m.get_reference("doctrine/pricing")),
-            "invalidation": _ref_body(engine._m.get_reference("doctrine/invalidation")),
+    # DH-10 defense-in-depth: engine re-seeds doctrine on startup/amnesia/restore, so a reference
+    # should always exist. If a transient window ever leaves it absent, self-heal by re-seeding
+    # and return the live value rather than 500ing on _ref_body(None).
+    if engine._m.get_reference("doctrine/pricing") is None:
+        engine.seed_doctrine()
+    pricing = engine._m.get_reference("doctrine/pricing")
+    invalidation = engine._m.get_reference("doctrine/invalidation")
+    return {"pricing": _ref_body(pricing) if pricing is not None else None,
+            "invalidation": _ref_body(invalidation) if invalidation is not None else None,
             "unit_usd_live": engine.unit_cost()}
 
 

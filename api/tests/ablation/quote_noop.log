@@ -1,0 +1,19 @@
+# No-op ablation evidence (Phase 8.5) — 2026-09-10
+# Procedure: on a scratch copy, ablated Engine.quote() staleness detection
+#   (executes=False always; NotFound->False; transitive-cone->False), ran the
+#   headline suite, then restored engine.py from backup.
+# Headline under test: incremental recompilation — reuse ONLY when the
+#   content-addressed key matches; edits re-derive ONLY the transitive cone.
+
+RESULT (hollow engine — MUST break):
+  FAILED test_pricing.py::test_quote_is_sum_of_stale_items
+  FAILED test_amnesia.py::test_amnesia_close_before_rename_and_restore
+  FAILED test_stress_regressions.py::test_multi_source_edit_cone_pricing
+  FAILED test_stress_regressions.py::test_cutoff_refund_stops_cascade_under_chained_edit
+  4 failed, 6 passed
+
+RESULT (restored engine — MUST pass):
+  25 passed
+
+Conclusion: suiteBrokeWhenNooped = true. The suite genuinely exercises the
+incremental-recompilation core; it is not a green-by-construction hollow suite.

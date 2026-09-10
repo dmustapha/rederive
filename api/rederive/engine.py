@@ -86,7 +86,12 @@ class Engine:
             if os.path.exists(self._db_path):
                 os.rename(self._db_path, self._db_path + ".amnesia")
             self._open()
-            return os.path.exists(self._db_path + ".amnesia")
+            db_swapped = os.path.exists(self._db_path + ".amnesia")
+        # DH-10: REFERENCE-tier pricing doctrine is config, NOT a derivation — the deletion test
+        # collapses DERIVATIONS (intelligence), not the price list. Re-seed so /doctrine never 500s
+        # and /quote keeps reading the REFERENCE unit (NN-6), never the REDERIVE_UNIT_USD constant.
+        self.seed_doctrine()
+        return db_swapped
 
     def restore(self) -> bool:
         with self._lock:
@@ -97,7 +102,10 @@ class Engine:
                     os.remove(self._db_path)
                 os.rename(side, self._db_path)
             self._open()
-            return True
+        # DH-10: idempotent — restored db already carries doctrine (no-op); a restore with no
+        # side-file (nothing to restore) still guarantees doctrine present so NN-6 pricing holds.
+        self.seed_doctrine()
+        return True
 
     def reset(self):
         with self._lock:
@@ -215,7 +223,15 @@ class Engine:
         values = {}
         for ref in refs:
             kind, nm = ref.split(":", 1)
-            body = self._m.get_entity(kind, nm)["body"]
+            try:
+                body = self._m.get_entity(kind, nm)["body"]
+            except NotFoundError:
+                # NN-4 honest failure mode (transitive): an UPSTREAM ref was auto-invalidated
+                # (archived after its own MISMATCH) or deleted. We cannot re-derive this node
+                # without its inputs, so the verdict is STALE — never a 500. run_graph rebuilds
+                # the whole cone (NotFound -> executes) on the next /answer.
+                return {"verdict": "STALE", "stored_fp": stored["value_fp"], "fresh_fp": None,
+                        "reason": f"upstream {ref} invalidated — re-derive cone to restore"}
             values[ref] = body.get("content", body.get("value"))
         fresh = fn(values)
         fresh_fp = stable_fp(fresh, fn)          # same stable projection the store used (D-4)
