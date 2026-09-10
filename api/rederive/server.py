@@ -146,7 +146,10 @@ def amnesia(body: dict | None = None, x_admin_token: str | None = Header(default
         engine.restore()
     else:
         engine.amnesia(); last_report = None; verified.clear()
-    return {"ok": True, "db_present": os.path.exists(engine._db_path)}
+    # db_present = is the WARM memory live? After amnesia the warm db is renamed to `.amnesia`
+    # (an empty db is reopened at the canonical path), so warm memory is GONE until restore.
+    warm_deleted = os.path.exists(engine._db_path + ".amnesia")
+    return {"ok": True, "db_present": (not warm_deleted)}
 
 
 @app.post("/seed_sources")

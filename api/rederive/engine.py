@@ -233,22 +233,34 @@ class Engine:
     def graph_state(self, graph: list[tuple[str, list[str], Callable]],
                     last: RunReport | None) -> dict:
         nodes, edges = [], []
+        live = set()
         for node, refs, _fn in graph:
             verdict = "pending"
+            in_report = False
             if last:
-                if node in last.reused: verdict = "reused"
-                elif node in last.cutoff: verdict = "cutoff"
-                elif node in last.derived: verdict = "derived"
-                elif node in last.errors: verdict = "error"
+                if node in last.reused: verdict, in_report = "reused", True
+                elif node in last.cutoff: verdict, in_report = "cutoff", True
+                elif node in last.derived: verdict, in_report = "derived", True
+                elif node in last.errors: verdict, in_report = "error", True
             try:
                 fp = self._m.get_entity("derivation", node)["body"]["value_fp"]
+                stored = True
                 if verdict == "pending": verdict = "stored"
             except NotFoundError:
                 fp = None
+                stored = False
+            # NN-5 deletion test: a derivation is LIVE only if present in the memory db or
+            # classified by the current run. When memory is deleted (amnesia) absent derivations
+            # VANISH from the graph — the intelligence disappears on camera; only sources remain.
+            if not stored and not in_report:
+                continue
+            live.add(node)
             nodes.append({"id": node, "verdict": verdict, "fp": fp})
             for ref in refs:
                 kind, nm = ref.split(":", 1)
-                edges.append([f"src_{nm}" if kind == "source" else nm, node])
+                # only draw an edge whose derivation endpoint is itself live (no dangling edges)
+                if kind == "source" or nm in live:
+                    edges.append([f"src_{nm}" if kind == "source" else nm, node])
         for node, refs, _fn in graph:
             for ref in refs:
                 if ref.startswith("source:"):
