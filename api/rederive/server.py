@@ -40,7 +40,13 @@ if not DEMO_FREE:
     NETWORK = os.environ.get("X402_NETWORK", "eip155:84532")   # Base Sepolia
     FACILITATOR = os.environ.get("FACILITATOR_URL", "https://x402.org/facilitator")
 
+    # DT-4 escape hatch: REDERIVE_STATIC_PRICE pins the 402 price (e.g. a low-balance demo wallet)
+    # WITHOUT changing the callable shape — the dynamic-price proof lives in the committed tx hashes.
+    _STATIC_PRICE = os.environ.get("REDERIVE_STATIC_PRICE")
+
     def dynamic_price(context: HTTPRequestContext) -> str:
+        if _STATIC_PRICE:
+            return _STATIC_PRICE
         q = engine.quote(GRAPH)
         return f"${max(q['total_usd'], 0.001):.3f}"   # facilitator minimum guard
 
@@ -51,6 +57,15 @@ if not DEMO_FREE:
         accepts=[PaymentOption(scheme="exact", pay_to=EVM_ADDRESS,
                                price=dynamic_price, network=NETWORK)],
         mime_type="application/json", description="Rederive dossier (priced per executed derivation)")}
+    # 2nd metered route (T5.3): sell what memory learned. /recall is x402-gated only when RECALL_PAID=1
+    # (a flat recall fee — separate from the per-derivation /answer price); else it stays open for judges.
+    RECALL_PAID = os.environ.get("RECALL_PAID", "0") == "1"
+    if RECALL_PAID:
+        RECALL_PRICE = os.environ.get("RECALL_PRICE_USD", "$0.010")
+        routes["GET /recall"] = RouteConfig(
+            accepts=[PaymentOption(scheme="exact", pay_to=EVM_ADDRESS,
+                                   price=RECALL_PRICE, network=NETWORK)],
+            mime_type="application/json", description="Rederive FTS5 recall (metered memory market)")
     app.add_middleware(PaymentMiddlewareASGI, routes=routes, server=x402_server)
 
 
