@@ -20,3 +20,4 @@ web/.vercel/
 .deploy-state.json
 *-state.json
 docs/pipeline/
+.ship-check.json
