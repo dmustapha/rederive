@@ -81,21 +81,27 @@ Every derivation, price, and provenance record lives in Sibyl Memory. Take it aw
 - **Deep integration** — [`commons.py`](./api/rederive/commons.py) (multi-tenant), [`anchor.py`](./api/rederive/anchor.py) (NN-8 on-chain), [`langgraph_store.py`](./api/rederive/langgraph_store.py), [`mcp_server.py`](./api/rederive/mcp_server.py).
 - **UI** — [`web/`](./web): Next.js App Router, two pages — a landing ([`app/page.tsx`](./web/app/page.tsx)) and the reactflow operator console ([`app/console/page.tsx`](./web/app/console/page.tsx)) sharing one live-state hook ([`lib/useRederive.ts`](./web/lib/useRederive.ts)).
 
-## Run it locally
+## Run it
+
+**Nothing to set up — just open the live app.** [rederive-five.vercel.app](https://rederive-five.vercel.app) is fully configured (LLM provider, x402, warm seed). Open it, go to the [console](https://rederive-five.vercel.app/console), edit a source, and watch the cone re-derive. **No API keys, no wallet, no accounts.**
+
+### Or run it locally — one command, no keys
 
 ```bash
-# API (engine + server)
-cd api
-python -m venv ../.venv && ../.venv/bin/pip install -r requirements.txt
-DEMO_FREE=1 ADMIN_TOKEN=dev REDERIVE_DB=/tmp/rederive.db PYTHONPATH=. \
-  ../.venv/bin/python -m uvicorn rederive.server:app --port 8402
-
-# UI (separate terminal)
-cd web && npm install
-NEXT_PUBLIC_API_URL=http://localhost:8402 npm run dev   # → http://localhost:3000
+./run.sh          # API on :8402, UI on :3000 — open http://localhost:3000
 ```
 
-Set `AGENTROUTER_API_KEY` (Anthropic-wire `/v1/messages`) for live LLM re-derivation; without it the engine still serves the warm graph. Tests: `cd api && PYTHONPATH=. ../.venv/bin/python -m pytest` (25 passing, incl. deletion-test, cutoff-refund, verify-on-serve, and self-falsification + no-op ablation).
+`run.sh` creates the venv, installs deps, hydrates the **baked warm seed**, and boots both servers. With **zero API keys** you get the full warm dossier, the deletion test (amnesia → restore), recall, pricing, the on-chain anchor view, and the commons — all served from memory.
+
+The **only** thing that needs an LLM key is re-deriving an *edited* source's cone live. For that, either export one key before running, or just use the deployed app (already configured):
+
+```bash
+export DEEPSEEK_API_KEY=sk-...        # native api.deepseek.com (reachable anywhere), OR
+export AGENTROUTER_API_KEY=sk-...     # Anthropic-wire /v1/messages
+./run.sh
+```
+
+Tests (no keys needed): `cd api && PYTHONPATH=. ../.venv/bin/python -m pytest` — 26 passing, incl. deletion-test, cutoff-refund, verify-on-serve, and self-falsification + no-op ablation.
 
 ## Deployment
 
