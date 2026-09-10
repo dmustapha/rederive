@@ -12,6 +12,11 @@ KEY = os.environ.get("AGENTROUTER_API_KEY")
 UA = "claude-cli/2.0.14 (external, cli)"          # REQUIRED — their gate rejects other clients
 LADDER = ["claude-opus-4-8", "claude-opus-5", "gpt-5.6-sol", "deepseek-v4-flash", "glm-5.3"]
 OLLAMA = os.environ.get("OLLAMA_URL", "http://localhost:11434")
+# Native DeepSeek API (OpenAI-compatible). Unlike Agent Router, api.deepseek.com is reachable
+# from datacenter hosts (Render), so this is the primary rung when DEEPSEEK_API_KEY is set —
+# it makes LIVE re-derivation work on the deployed URL, not just locally.
+DEEPSEEK_BASE = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
+DEEPSEEK_MODEL = os.environ.get("DEEPSEEK_MODEL", "deepseek-chat")
 _session_model: str | None = None
 
 class LadderExhausted(RuntimeError): ...
@@ -46,6 +51,28 @@ def _agentrouter(model: str, system: str, user: str) -> str:
             continue
     raise RuntimeError(f"network: {last}")
 
+def _deepseek(system: str, user: str) -> str:
+    key = os.environ.get("DEEPSEEK_API_KEY")
+    if not key:
+        raise RuntimeError("DEEPSEEK_API_KEY not set")
+    last = None
+    for _ in range(_NET_RETRIES + 1):
+        try:
+            r = httpx.post(f"{DEEPSEEK_BASE}/chat/completions", timeout=120,
+                           headers={"authorization": f"Bearer {key}", "content-type": "application/json"},
+                           json={"model": DEEPSEEK_MODEL, "temperature": 0, "max_tokens": MAX_TOKENS,
+                                 "response_format": {"type": "json_object"},
+                                 "messages": [{"role": "system", "content": system},
+                                              {"role": "user", "content": user}]})
+            data = r.json()
+            if "error" in data:
+                raise RuntimeError(data["error"].get("message", "deepseek error"))
+            return data["choices"][0]["message"]["content"].strip()
+        except (httpx.TransportError, httpx.HTTPError) as exc:   # network/TLS flake -> retry same rung
+            last = exc
+            continue
+    raise RuntimeError(f"network: {last}")
+
 def _ollama(system: str, user: str) -> str:
     r = httpx.post(f"{OLLAMA}/api/chat", timeout=180,
                    json={"model": "llama3.2:3b", "stream": False, "format": "json",
@@ -55,6 +82,9 @@ def _ollama(system: str, user: str) -> str:
     return r.json()["message"]["content"].strip()
 
 def _providers():
+    # native DeepSeek FIRST when configured — the only rung reachable from the deploy host
+    if os.environ.get("DEEPSEEK_API_KEY"):
+        yield f"deepseek-native/{DEEPSEEK_MODEL}", _deepseek
     for m in LADDER:
         yield m, lambda s, u, m=m: _agentrouter(m, s, u)
     yield "ollama/llama3.2:3b", _ollama
