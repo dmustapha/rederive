@@ -79,12 +79,27 @@ class Engine:
             del m
             gc.collect()
 
+    # SQLite WAL mode keeps -wal / -shm sidecars next to the db. A rename of the db alone strips
+    # them off, so a restored db inherits the EMPTY db's stale WAL and reads as empty (the live
+    # deletion-test bug). Move all three together, and clear the destination's sidecars first.
+    _SIDECARS = ("", "-wal", "-shm")
+
+    def _move_db(self, src: str, dst: str) -> None:
+        for sfx in self._SIDECARS:
+            d = dst + sfx
+            if os.path.exists(d):
+                os.remove(d)
+        for sfx in self._SIDECARS:
+            s = src + sfx
+            if os.path.exists(s):
+                os.rename(s, dst + sfx)
+
     def amnesia(self) -> bool:
-        """Deletion test: close -> rename db -> reopen empty. Returns db_present after."""
+        """Deletion test: close -> move db (+WAL sidecars) aside -> reopen empty. Returns db_present."""
         with self._lock:
             self.close()
             if os.path.exists(self._db_path):
-                os.rename(self._db_path, self._db_path + ".amnesia")
+                self._move_db(self._db_path, self._db_path + ".amnesia")
             self._open()
             db_swapped = os.path.exists(self._db_path + ".amnesia")
         # DH-10: REFERENCE-tier pricing doctrine is config, NOT a derivation — the deletion test
@@ -98,9 +113,7 @@ class Engine:
             self.close()
             side = self._db_path + ".amnesia"
             if os.path.exists(side):
-                if os.path.exists(self._db_path):
-                    os.remove(self._db_path)
-                os.rename(side, self._db_path)
+                self._move_db(side, self._db_path)     # moves db + -wal + -shm, clears empty sidecars
             self._open()
         # DH-10: idempotent — restored db already carries doctrine (no-op); a restore with no
         # side-file (nothing to restore) still guarantees doctrine present so NN-6 pricing holds.
