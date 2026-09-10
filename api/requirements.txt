@@ -6,10 +6,12 @@ httpx==0.27.2
 pydantic==2.9.2
 eth-account==0.13.4
 pytest==8.3.3
-# deep-integration extras — ALL cuttable, so ALL optional (a failed extra install must NOT kill the
-# core `pip install`). Install in a SEPARATE step (PLAN CX/C5) after DT-9/DT-10 confirm they resolve
-# against sibyl-memory-client==0.8.1; every consuming module is import-guarded (degrades to a no-op).
+# deep-integration extras — cuttable + import-guarded (a failed extra install must NOT kill the
+# core `pip install`). DT-9 ✅ RESOLVED: these versions install clean against sibyl-memory-client==0.8.1
+# (client stays 0.8.1, no silent bump). Pinned to the exact working env so the deploy build reproduces it
+# (NOT the broken starlette 1.6.0). every consuming module is import-guarded (degrades to a no-op).
 # web3==7.4.0               # on-chain receipt anchoring (anchor.py, D-19)
-# sibyl-memory-langgraph    # LangGraph BaseStore adapter (D-16, langgraph_store.py)
-# langgraph                 # graph orchestration (D-16)
-# mcp                       # MCP stdio server (D-17, mcp_server.py)
+sibyl-memory-langgraph==0.2.0   # LangGraph BaseStore adapter (D-16, langgraph_store.py)
+langgraph==1.1.10               # graph orchestration (D-16)
+mcp<2                           # MCP stdio server, FastMCP API (D-17, mcp_server.py) — NOT mcp 2.x
+starlette>=0.37.2,<0.39         # fastapi 0.115 compat (pin away from broken starlette 1.6.0)
