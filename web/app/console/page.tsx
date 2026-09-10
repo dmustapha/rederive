@@ -8,8 +8,8 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useReport, ReportNode, Receipt } from "@/lib/useReport";
-import { StateResp, getJSON } from "@/lib/api";
-import { FiveTier, AnchorPanel, RecallPanel } from "@/components/deep";
+import { StateResp, getJSON, postJSON } from "@/lib/api";
+import { FiveTier, AnchorPanel } from "@/components/deep";
 
 const GROUPS: { title: string; ids: string[] }[] = [
   { title: "Docs & API", ids: ["m_doc_quality", "m_storage_arch", "m_api_surface"] },
@@ -39,8 +39,54 @@ const STEPS = [
   { title: "Asking again is free", sub: "It already did this work and remembers it. Ask the exact same question again — nothing should be recomputed." },
   { title: "Change one thing, redo only that", sub: "Say the token details change. Edit that one source and rebuild, then watch which checks light up and what it costs." },
   { title: "The answers live in memory", sub: "Is this really remembered, or just hard-coded? Delete the memory and watch what happens to the report." },
-  { title: "How it remembers, and who pays", sub: "Under the hood: five memory layers do the remembering. And the real customer isn't you, it's another AI agent that pays per answer with x402 on Base." },
+  { title: "How it remembers, and who actually uses it", sub: "The real customer isn't you, it's an AI agent. It plugs in three ways (a paid API call, an MCP tool, or a LangGraph node), and pays per answer with x402 on Base. Under the hood, five memory layers do the remembering." },
 ];
+
+// The three real ways an agent plugs in — the API path fires a real POST /answer so you SEE the
+// exact JSON an agent gets back (the whole point: the customer is a machine, not this webpage).
+function AgentView() {
+  const [resp, setResp] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const call = async () => {
+    setLoading(true); setResp(null);
+    try { setResp(await postJSON<any>("/answer", {})); } catch (e) { setResp({ error: String(e) }); }
+    setLoading(false);
+  };
+  return (
+    <div className="agentview panel">
+      <h3>How an AI agent plugs in</h3>
+      <p className="hint" style={{ marginBottom: 12 }}>No agent opens this page. It integrates one of three ways, all built and working:</p>
+      <div className="av-card">
+        <div className="av-h"><span className="av-n">1</span>Paid API call · x402 on Base</div>
+        <pre className="av-code">{`client = x402Client()               # pays per call, on Base
+r = await http.post(".../answer")   # x402 settles the quote
+dossier = r.json()["dossier"]       # -> the verdict, as JSON`}</pre>
+        <button className="btn ghost sm" onClick={call} disabled={loading}>{loading ? "calling…" : "▶ Make the call an agent makes"}</button>
+        {resp && !resp.error && (
+          <pre className="av-out">{JSON.stringify({
+            dossier: { verdict: resp.dossier?.s_verdict?.verdict, score: resp.dossier?.s_score?.overall, risk: resp.dossier?.s_risk?.risk_level },
+            paid_usd: resp.receipt?.quoted_usd, redone: resp.receipt?.derived?.length, reused: resp.receipt?.reused?.length,
+          }, null, 2)}</pre>
+        )}
+        {resp?.error && <pre className="av-out err">{resp.error}</pre>}
+      </div>
+      <div className="av-card">
+        <div className="av-h"><span className="av-n">2</span>MCP tool · drop-in for Claude</div>
+        <pre className="av-code">{`# FastMCP server "rederive"
+@mcp.tool()
+def get_derivation(node): ...   # get_derivation("s_verdict")
+@mcp.tool()
+def recall(q, limit): ...       # keyword search the memory`}</pre>
+        <p className="av-note">Point any MCP client at the server; the agent's model calls these tools directly, no glue code.</p>
+      </div>
+      <div className="av-card">
+        <div className="av-h"><span className="av-n">3</span>LangGraph node</div>
+        <pre className="av-code">{`graph = build_langgraph(engine)
+# Rederive becomes the memory node inside the agent's own workflow`}</pre>
+      </div>
+    </div>
+  );
+}
 
 export default function Console() {
   const { rep, running, cone, token, edit, run, admin } = useReport();
@@ -177,7 +223,7 @@ export default function Console() {
             {step === 3 && (gone
               ? <button className="btn lg" onClick={runRestore} disabled={busy}>{busy ? "restoring…" : "↻ Bring the memory back"}</button>
               : <button className="btn lg danger" onClick={runDelete} disabled={busy}>{busy ? "deleting…" : "▶ Delete the memory"}</button>)}
-            {step === 4 && <span className="wt-hint">The five memory layers and a real on-chain payment are shown below.</span>}
+            {step === 4 && <span className="wt-hint">Below: <b>run the exact call an agent makes</b>, plus the five memory layers and real on-chain payments.</span>}
           </div>
 
           {result && <div className={`wt-result ${result.ok ? "ok" : "bad"}`}><span className="wt-check">{result.ok ? "✓" : "✕"}</span>{result.text}</div>}
@@ -191,7 +237,7 @@ export default function Console() {
         {/* THE STAGE — the report reacts (steps 1-4), or the under-the-hood panels (step 5) */}
         {step < 4
           ? <><p className="rc-grid-intro">The 15 checks behind the verdict. <b className="t-good">Green</b> is a plus, <b className="t-mid">amber</b> is so-so, <b className="t-bad">red</b> is a concern.</p>{grid}</>
-          : <div className="wt-hood"><FiveTier state={sstate} /><AnchorPanel adminToken={token} /><RecallPanel /></div>}
+          : <div className="wt-hood"><AgentView /><FiveTier state={sstate} /><AnchorPanel adminToken={token} /></div>}
       </div>
     </div>
   );
