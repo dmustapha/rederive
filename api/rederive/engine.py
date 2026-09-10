@@ -18,6 +18,17 @@ def canon(v: Any) -> str:
 def h(v: Any) -> str:
     return hashlib.sha256(canon(v).encode()).hexdigest()[:16]
 
+def stable_fp(value: Any, fn: Callable | None = None) -> str:
+    """NN-4 fingerprint: hash the STABLE decision projection of a value, not drifting prose.
+    A derive_fn may declare `_fp_keys` (list) = the reproducible identity fields (coarse enums /
+    buckets). When present, the fingerprint covers ONLY those fields — so free-text `basis`,
+    `one_liner`, `top_risks`, or a drifting 0-100 number never flips reuse/verify (D-4). When
+    `_fp_keys` is None/absent (e.g. open-ended extraction text), the full value is hashed as before."""
+    fp_keys = getattr(fn, "_fp_keys", None) if fn is not None else None
+    if fp_keys and isinstance(value, dict):
+        return h({k: value.get(k) for k in fp_keys})
+    return h(value)
+
 def _ref_body(ref: dict) -> dict:
     # DEV-004: client 0.8.1 returns REFERENCE bodies as a JSON string; entity/state bodies as dicts.
     body = ref["body"]
@@ -126,7 +137,7 @@ class Engine:
         except NotFoundError:
             prev_fp = None
         value = fn(values)                      # LLM call happens inside fn (pure fn of values)
-        fp = h(value)
+        fp = stable_fp(value, fn)               # NN-4/D-4: identity = stable decision projection
         with self._lock:
             try:                                # ARCHIVE the superseded derivation (audit trail)
                 self._m.archive_entity("derivation", node)
@@ -200,12 +211,13 @@ class Engine:
             body = self._m.get_entity(kind, nm)["body"]
             values[ref] = body.get("content", body.get("value"))
         fresh = fn(values)
-        match = h(fresh) == stored["value_fp"]
+        fresh_fp = stable_fp(fresh, fn)          # same stable projection the store used (D-4)
+        match = fresh_fp == stored["value_fp"]
         if not match:
             with self._lock:
                 self._m.archive_entity("derivation", node)   # auto-invalidate: honest failure mode
         return {"verdict": "MATCH" if match else "MISMATCH",
-                "stored_fp": stored["value_fp"], "fresh_fp": h(fresh)}
+                "stored_fp": stored["value_fp"], "fresh_fp": fresh_fp}
 
     def get_derivation(self, node: str) -> dict:
         return self._m.get_entity("derivation", node)["body"]
