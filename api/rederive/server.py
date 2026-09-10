@@ -117,8 +117,11 @@ def answer(_body: AnswerBody | None = None):
                 "receipt": {"derived": rep.derived, "reused": rep.reused,
                             "total_usd": round(len(rep.derived) * float(os.environ.get("REDERIVE_UNIT_USD", "0.02")), 4)}}
     # verify-on-serve sample: re-derive up to N reused nodes, field-compare, badge them (NN-4).
-    # A MISMATCH auto-invalidates the node's cone inside engine.verify — the failure mode is honest.
-    for node in rep.reused[:VERIFY_SAMPLE]:
+    # A real MISMATCH auto-invalidates the node's cone inside engine.verify — the failure mode is
+    # honest. Scope the sample to REPRODUCIBLE nodes (metric/synth, stable-enum fp); extraction prose
+    # is non-reproducible and would false-MISMATCH, so it is never sampled (would drift warm price up).
+    sample = [n for n in rep.reused if not getattr(GRAPH_FNS[n][1], "_non_reproducible", False)][:VERIFY_SAMPLE]
+    for node in sample:
         try:
             verified[node] = engine.verify(node, GRAPH_FNS)["verdict"]
         except Exception:                    # noqa: BLE001 — a sample failure never blocks the answer
@@ -126,7 +129,7 @@ def answer(_body: AnswerBody | None = None):
     dossier = {n: engine.get_derivation(n)["value"] for n in ("s_risk", "s_score", "s_verdict")}
     return {"dossier": dossier,
             "receipt": {"derived": rep.derived, "reused": rep.reused, "cutoff": rep.cutoff,
-                        "quoted_usd": pre["total_usd"], "verified": {k: verified[k] for k in rep.reused[:VERIFY_SAMPLE] if k in verified}}}
+                        "quoted_usd": pre["total_usd"], "verified": {k: verified[k] for k in sample if k in verified}}}
 
 
 @app.post("/edit")

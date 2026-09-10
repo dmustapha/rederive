@@ -22,6 +22,10 @@ def _ex(source: str):
     # Fingerprint the whole claims structure; verify-on-serve for reuse MATCH is scoped to
     # metric/synth (derivation) nodes where the stable projection is deterministic. See CLAIMS.md.
     fn._fp_keys = None   # None = hash the full value (no stable projection available)
+    # NN-4: extraction prose re-derives to DIFFERENT text every LLM call, so verify-on-serve would
+    # always "MISMATCH" and (pre-fix) auto-archive a perfectly good node — silently invalidating its
+    # cone and drifting the warm price up. Mark it so verify reports UNVERIFIABLE and never archives.
+    fn._non_reproducible = True
     return fn
 
 EXTRACTORS = {s: _ex(s) for s in SOURCES}

@@ -236,6 +236,13 @@ class Engine:
         fresh = fn(values)
         fresh_fp = stable_fp(fresh, fn)          # same stable projection the store used (D-4)
         match = fresh_fp == stored["value_fp"]
+        if getattr(fn, "_non_reproducible", False):
+            # NN-4: open-ended extraction prose has no reproducible fingerprint — a fresh re-derivation
+            # legitimately differs, so a mismatch here is NOT tampering. Report honestly and NEVER
+            # archive (archiving would corrupt warm reuse and drift the price up on every /answer).
+            return {"verdict": "MATCH" if match else "UNVERIFIABLE",
+                    "stored_fp": stored["value_fp"], "fresh_fp": fresh_fp,
+                    "reason": None if match else "open-ended extraction — not reproducibly verifiable"}
         if not match:
             with self._lock:
                 self._m.archive_entity("derivation", node)   # auto-invalidate: honest failure mode
