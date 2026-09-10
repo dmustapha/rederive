@@ -1,0 +1,13 @@
+# Litestream config — replicates the SQLite memory.db to a free S3-compatible object store
+# (Cloudflare R2 / Backblaze B2 free tier). All values come from env vars set on the Render
+# service; if LITESTREAM_BUCKET is unset the entrypoint skips Litestream entirely (seed-only).
+dbs:
+  - path: ${REDERIVE_DB}
+    replicas:
+      - type: s3
+        endpoint: ${LITESTREAM_ENDPOINT}      # e.g. https://<accountid>.r2.cloudflarestorage.com
+        bucket: ${LITESTREAM_BUCKET}
+        path: rederive/memory.db
+        access-key-id: ${LITESTREAM_ACCESS_KEY_ID}
+        secret-access-key: ${LITESTREAM_SECRET_ACCESS_KEY}
+        force-path-style: true

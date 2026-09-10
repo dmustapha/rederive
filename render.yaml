@@ -1,22 +1,43 @@
-# Render Blueprint — Rederive API+engine (single process, persistent SQLite memory.db).
-# Deploy target = Render (overrides forge D-8 Fly.io, per [DAMI] 2026-09-09).
-# NOTE: the `disk` below REQUIRES a paid instance (Starter+). Render free tier has NO
-# persistent disk and wipes the filesystem on spin-down — which would break cold-start
-# recall (the win-condition gate). Keep plan: starter (or higher) so memory.db persists.
+# Render Blueprint — Rederive API+engine (single process, SQLite memory.db).
+# Deploy target = Render FREE tier (no paid persistent disk). Persistence is achieved for $0 via:
+#   1. a baked WARM SEED (api/seed/memory.warm.db) re-hydrated by entrypoint.sh on every cold boot
+#      -> the canonical Uniswap dossier is ALWAYS warm on the live URL (no spin-down amnesia); and
+#   2. optional Litestream replication to a free S3-compatible bucket (Cloudflare R2 / Backblaze B2)
+#      -> judge-created state also survives a spin-down. Activates only when LITESTREAM_* env vars
+#      are set; otherwise the service runs in seed-only mode.
+# The full LLM pipeline, deletion test, verify-on-serve, x402 and NN-8 anchor all run live.
 services:
   - type: web
     name: rederive-api
     runtime: docker
     dockerfilePath: ./Dockerfile
-    plan: starter            # persistent disk requires a paid plan
+    plan: free
     healthCheckPath: /health
     autoDeploy: false
-    disk:
-      name: rederive-data
-      mountPath: /data       # REDERIVE_DB=/data/memory.db (set in Dockerfile ENV)
-      sizeGB: 1
     envVars:
       - key: REDERIVE_DB
-        value: /data/memory.db
+        value: /var/rederive/memory.db      # writable in-container path; re-hydrated from seed each boot
+      - key: DEMO_FREE
+        value: "1"                           # public operator console: judges drive it freely (agent-native x402 proven on-chain + in demo)
       - key: PYTHONUNBUFFERED
         value: "1"
+      # --- set in the Render dashboard (sync:false = entered by hand, not committed) ---
+      - key: ADMIN_TOKEN
+        sync: false                          # gate mutating routes (/edit /amnesia /reset …)
+      - key: AGENTROUTER_API_KEY
+        sync: false                          # live LLM re-derivation on edit (deepseek-v4-flash rung)
+      - key: AGENTROUTER_BASE_URL
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false                          # the Vercel UI origin, once known
+      - key: EVM_ADDRESS
+        sync: false                          # seller receive address (only needed if DEMO_FREE=0)
+      # --- optional Litestream persistence (leave unset for seed-only mode) ---
+      - key: LITESTREAM_BUCKET
+        sync: false
+      - key: LITESTREAM_ENDPOINT
+        sync: false
+      - key: LITESTREAM_ACCESS_KEY_ID
+        sync: false
+      - key: LITESTREAM_SECRET_ACCESS_KEY
+        sync: false

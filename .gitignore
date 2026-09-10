@@ -8,3 +8,6 @@ node_modules/
 .next/
 .env
 .env.local
+
+# Baked warm-seed demo fixture (committed on purpose — deploy re-hydrates from it)
+!api/seed/memory.warm.db
