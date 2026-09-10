@@ -373,6 +373,12 @@ b.t-good { color: #7fd6a6; } b.t-bad { color: #e88a7f; } b.t-mid { color: var(--
 .rc-explain b { color: var(--accent-hi); }
 .rc-secondary { margin-top: 4px; }
 
+/* ── who-uses-this strip — frames the console as the human window onto an agent-facing API ── */
+.rc-who { display: flex; align-items: baseline; gap: 12px; background: var(--accent-tint); border: 1px solid var(--border); border-radius: var(--r-md); padding: 12px 16px; font-size: var(--t-sm); color: var(--text-2); line-height: 1.5; }
+.rc-who-tag { flex: none; font-family: var(--mono); font-size: var(--t-xs); text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); font-weight: 700; }
+.rc-who b { color: var(--white); }
+.rc-who code { font-family: var(--mono); font-size: 0.9em; background: var(--surface-3); padding: 1px 6px; border-radius: 4px; color: var(--accent-hi); }
+
 /* ── memory gauge — the substrate, made physical (records held + bytes on disk) ── */
 .rc-gauge { display: flex; align-items: center; gap: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); padding: 12px 18px; }
 .rc-gauge-bar { flex: 1; height: 8px; background: var(--surface-3); border-radius: var(--r-pill); overflow: hidden; }

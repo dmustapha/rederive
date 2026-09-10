@@ -58,6 +58,14 @@ export default function Console() {
   useEffect(() => { if (rep && !busy) { const m: Record<string, string | null> = {}; rep.nodes.forEach((n) => (m[n.id] = n.fp ?? null)); prevFp.current = m; } }, [rep, busy]);
   const log = (t: string, k: "reuse" | "derive" | "delete" | "edit") => setLedger((l) => [{ t, k }, ...l].slice(0, 6));
 
+  // Safety net: this is a shared public demo. If someone runs the deletion test and walks away,
+  // auto-restore after a minute so no judge ever lands on a collapsed, dead-end console.
+  useEffect(() => {
+    if (!gone || busy) return;
+    const t = setTimeout(() => { admin("/amnesia", { restore: true }).then(() => { log("Memory auto-restored", "reuse"); pollState(); }); }, 60000);
+    return () => clearTimeout(t);
+  }, [gone, busy]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const choreograph = async (receipt: Receipt | null) => {
     const derived = receipt?.derived ?? [], reused = receipt?.reused ?? [];
     if (derived.length === 0) {
@@ -95,11 +103,18 @@ export default function Console() {
             <div className="rc-eyebrow">Trust report · Uniswap · everything here is remembered, not recomputed</div>
             <h1 className="rc-verdict">{gone ? "no memory" : (verdict?.verdict ?? "—")}</h1>
             <p className="rc-oneliner">{gone ? "The report is gone. Its answers lived in memory, not in the code." : (verdict?.one_liner ?? "")}</p>
+            {gone && <button className="btn" style={{ marginTop: 14 }} onClick={doRestore} disabled={busy}>{busy ? "restoring…" : "↻ Bring the memory back"}</button>}
           </div>
           <div className="rc-badges">
             <div className="rc-badge"><span>Score</span><b>{gone ? "—" : (score?.overall ?? "—")}<i>/100</i></b></div>
             <div className="rc-badge"><span>Risk</span><b className={`t-${tone(risk?.risk_level ?? "")}`}>{gone ? "—" : (risk?.risk_level ?? "—")}</b></div>
           </div>
+        </div>
+
+        {/* who uses this — the real consumer is an agent, this page is the human window */}
+        <div className="rc-who">
+          <span className="rc-who-tag">Who uses this?</span>
+          <span>An <b>AI agent</b> does, not a person. It calls the API (<code>POST /answer</code>), gets this report back as data, and pays only for what changed with x402 on Base. This page is the <b>human window</b>, so you can watch it happen and check the work.</span>
         </div>
 
         <div className={`rc-gauge${gone ? " empty" : ""}`}>
