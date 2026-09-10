@@ -14,10 +14,11 @@ ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN", "")
 app = FastAPI(title="Rederive")
 from fastapi.middleware.cors import CORSMiddleware
 
-# CORS: dev origin + intended Vercel origin (prod locked to CORS_ORIGIN when set) (§6D).
-_default_origins = ["http://localhost:3000", "https://rederive.vercel.app"]
+# CORS (§6D): ALWAYS allow localhost dev origins; ADD any comma-separated CORS_ORIGIN(s) for prod.
+# Union (not replace) so a prod CORS_ORIGIN never breaks local dev on :3000.
+_default_origins = ["http://localhost:3000", "http://localhost:3001", "https://rederive.vercel.app"]
 _cors_env = os.environ.get("CORS_ORIGIN")
-_allow_origins = [_cors_env] if _cors_env else _default_origins
+_allow_origins = sorted(set(_default_origins) | {o.strip() for o in (_cors_env or "").split(",") if o.strip()})
 app.add_middleware(CORSMiddleware, allow_origins=_allow_origins,
                    allow_methods=["*"], allow_headers=["*"])
 engine = Engine()
@@ -227,12 +228,26 @@ def anchor(x_admin_token: str | None = Header(default=None)):
     return anchor_receipt(receipt)
 
 
+@app.post("/commons/run")
+def commons_run(x_admin_token: str | None = Header(default=None)):
+    """Run the multi-tenant analyst COMMONS on this db (NN-7 coordination beat, D-14):
+    market/tech/people analysts each derive under their own tenant; synth cites contributors."""
+    _admin(x_admin_token)
+    from .commons import Commons
+    from .pipeline import SOURCES
+    sources = {s: engine.get_source(s)["content"] for s in SOURCES}   # shared sources from this db
+    report = Commons(engine._db_path).run(sources)
+    return {"ok": True, "nodes_run": len(report), "report": report}
+
+
 @app.get("/commons")
 def commons_state():
-    """Cross-tenant attribution ledger: which analyst tenant produced each fact (NN-7)."""
-    from .pipeline import commons_graph
-    events = engine._m.read_events(limit=300)
+    """Cross-tenant attribution ledger: which analyst tenant produced each fact (NN-7).
+    read_events is tenant-scoped, so we read through the SYNTH tenant that wrote the attributions."""
+    from .engine import Engine
+    synth = Engine(db_path=engine._db_path, tenant="synth")
+    events = synth._m.read_events(limit=300)
     attributions = [e for e in events
                     if isinstance(e.get("evaluated"), dict) and e["evaluated"].get("type") == "attribution"]
-    return {"tenants": sorted({a["evaluated"]["by"] for a in attributions}),
-            "attributions": attributions}
+    tenants = sorted({c for a in attributions for c in a.get("extra", {}).get("cites", [])})
+    return {"tenants": tenants, "attributions": attributions}
