@@ -17,20 +17,20 @@ Built load-bearing on all five [Sibyl Memory](https://sibyllabs.org) tiers, mete
 
 ## What it is
 
-A crypto-project due-diligence dossier is a graph: **6 raw sources → 6 extractions → 15 metrics → 3 synthesis conclusions = 24 derivations**. Recomputing the whole thing every time a single source changes is wasteful, most of the graph didn't move.
+Rederive is an AI that researches a crypto project and tells you whether to trust it. It reads six sources (the docs, the code, the token, the team, the community, the audits) and turns them into fifteen plain checks and one final verdict.
 
-Rederive treats cognition like a **build system**. Each derivation is content-addressed by a hash of its inputs. Edit one source and only the **invalidation cone** downstream of it re-derives; everything else is served straight from memory at zero cost. It's Bazel/Vercel-style incremental compilation, but for an agent's reasoning.
+The clever part is that it **remembers its work**. Ask the same question again and the answer comes back instantly and free, because nothing changed. Change one source and it only re-does the few conclusions that actually depend on it, not the whole report. It's the same trick a build tool uses to rebuild only the file you edited, applied to an AI's reasoning.
 
-The paying consumer is a **machine**: another agent calls the metered `/answer` endpoint (x402, dynamic price = the live quote) or pulls the memory over **MCP** / **LangGraph**. The web app is the human window into it, in two pages: a **landing** that explains the model, and an **operator console** (`/console`) built as a **memory instrument**, everything on screen is served from memory, and three experiments let you prove it:
+And everything you see is **served from memory**, that's the whole point. The web app has two pages: a **landing** that explains the idea, and a **console** (`/console`) where you can prove it yourself with three one-click experiments:
 
-1. **Ask again (nothing changed)** → 0 conclusions recompute, all 24 reused, price stays **$0.000**, every content fingerprint identical.
-2. **Change one source** → only its **dependency cone** re-derives with new fingerprints; the rest hold, reused free.
-3. **Delete the memory** → the whole dossier collapses to "No Memory" and the memory gauge drops from 24/24 · ~460KB to **0/24 · 4KB**; Restore brings it back warm.
+1. **Ask again (nothing changed)** → nothing is recomputed, all 24 answers are reused, the price stays **$0.00**.
+2. **Change one source** → only the handful of conclusions that depend on it are redone; the rest stay exactly as they were, for free.
+3. **Delete the memory** → the whole report collapses to nothing (the memory meter drops from 24/24 to **0/24**), then **Restore** brings it back instantly.
 
-Each conclusion wears its content fingerprint, so reuse (same hash) and recompute (new hash) are provable by eye, not taken on faith.
+Each conclusion carries a short code that changes only when its answer changes, so you can *see* which parts were reused and which were redone, instead of taking the price on faith. (The paying customer is actually another AI agent: it calls a metered endpoint and pays per answer with **x402 on Base**. The details are further down.)
 
 <div align="center">
-<img src="./screenshots/live/rederive-console.png" alt="The operator console as a memory instrument: verdict, a memory gauge, 15 conclusions each with a content fingerprint, and three experiments that prove memory is load-bearing" width="820" />
+<img src="./screenshots/live/rederive-console.png" alt="The console: a verdict, a memory meter, fifteen conclusions each with a short change-code, and three one-click experiments that prove the answers live in memory" width="820" />
 </div>
 
 ## The pricing model, why a re-answer costs $0.000

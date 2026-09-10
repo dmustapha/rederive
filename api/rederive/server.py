@@ -71,6 +71,12 @@ if not DEMO_FREE:
 
 
 def _admin(token: str | None):
+    # DEMO_FREE = the public operator console judges drive freely (edit a source, run the deletion
+    # test, reset). The demo experiments ARE the product, so they must never hit a token wall on the
+    # deployed demo; state re-hydrates from the baked seed on cold boot, so there is nothing to guard.
+    # When DEMO_FREE is off (a real paid deployment), the admin token is still required.
+    if DEMO_FREE:
+        return
     if not ADMIN_TOKEN or token != ADMIN_TOKEN:
         raise HTTPException(403, "admin token required")
 

@@ -63,12 +63,12 @@ export default function Console() {
     if (derived.length === 0) {
       const ids = GROUPS.flatMap((g) => g.ids);
       for (let i = 0; i < ids.length; i++) { setAnim((a) => ({ ...a, [ids[i]]: "hold" })); await sleep(28); }
-      log(`Reused all 24 conclusions from memory · $0.00 · fingerprints unchanged`, "reuse");
+      log(`Reused all 24 answers from memory · $0.00 · nothing redone`, "reuse");
     } else {
       const shown = derived.filter((d) => GROUPS.some((g) => g.ids.includes(d)));
       for (let i = 0; i < shown.length; i++) { setAnim((a) => ({ ...a, [shown[i]]: "flip" })); await sleep(160); }
-      log(`Re-derived ${derived.length} conclusions · $${(receipt?.quoted_usd ?? derived.length * 0.02).toFixed(2)} · new fingerprints`, "derive");
-      log(`Reused ${reused.length} from memory · $0.00 · fingerprints unchanged`, "reuse");
+      log(`Redid ${derived.length} answers · $${(receipt?.quoted_usd ?? derived.length * 0.02).toFixed(2)}`, "derive");
+      log(`Reused the other ${reused.length} from memory · $0.00`, "reuse");
     }
     await sleep(900); setAnim({}); pollState();
   };
@@ -76,12 +76,12 @@ export default function Console() {
   const doReask = async () => { if (busy) return; setBusy(true); const r = await run(); await choreograph(r); setBusy(false); };
   const doEdit = async () => {
     const inv = await edit(source, content);
-    log(`Edited ${source} → ${inv.length} conclusions invalidated in memory`, "edit");
+    log(`Changed ${source} → ${inv.length} answers now need redoing`, "edit");
     const dirty: Record<string, Anim> = {}; inv.forEach((id) => (dirty[id] = "calc")); setAnim(dirty);
   };
   const doRederive = async () => { if (busy) return; setBusy(true); const r = await run(); await choreograph(r); setBusy(false); };
-  const doDelete = async () => { if (busy) return; setBusy(true); await admin("/amnesia"); log(`Memory deleted · 24 records gone · db collapsed to sources`, "delete"); pollState(); setBusy(false); };
-  const doRestore = async () => { if (busy) return; setBusy(true); await admin("/amnesia", { restore: true }); log(`Memory restored · 24 records warm · $0.00 to re-answer`, "reuse"); pollState(); setBusy(false); };
+  const doDelete = async () => { if (busy) return; setBusy(true); await admin("/amnesia"); log(`Memory deleted · all 24 answers gone`, "delete"); pollState(); setBusy(false); };
+  const doRestore = async () => { if (busy) return; setBusy(true); await admin("/amnesia", { restore: true }); log(`Memory restored · all 24 answers back · free`, "reuse"); pollState(); setBusy(false); };
 
   return (
     <div className="lab">
@@ -92,9 +92,9 @@ export default function Console() {
       <div className="rc-wrap">
         <div className="rc-head">
           <div>
-            <div className="rc-eyebrow">due-diligence dossier · Uniswap · everything below is served from memory</div>
+            <div className="rc-eyebrow">Trust report · Uniswap · everything here is remembered, not recomputed</div>
             <h1 className="rc-verdict">{gone ? "no memory" : (verdict?.verdict ?? "—")}</h1>
-            <p className="rc-oneliner">{gone ? "The dossier is gone. Its conclusions lived in memory — not the code." : (verdict?.one_liner ?? "")}</p>
+            <p className="rc-oneliner">{gone ? "The report is gone. Its answers lived in memory, not in the code." : (verdict?.one_liner ?? "")}</p>
           </div>
           <div className="rc-badges">
             <div className="rc-badge"><span>Score</span><b>{gone ? "—" : (score?.overall ?? "—")}<i>/100</i></b></div>
@@ -105,7 +105,7 @@ export default function Console() {
         <div className={`rc-gauge${gone ? " empty" : ""}`}>
           <div className="rc-gauge-bar"><span style={{ width: `${((mem?.records ?? 0) / (mem?.expected ?? 24)) * 100}%` }} /></div>
           <div className="rc-gauge-txt">
-            <b>{mem?.records ?? "—"}<i> / {mem?.expected ?? 24}</i></b> conclusions in memory
+            <b>{mem?.records ?? "—"}<i> / {mem?.expected ?? 24}</i></b> answers in memory
             <span className="rc-gauge-size">· {kb(mem?.db_bytes)} on disk</span>
           </div>
         </div>
@@ -129,10 +129,10 @@ export default function Console() {
                     {!absent && !updating && sentence && <div className="rc-m-basis">{sentence}</div>}
                     <div className="rc-m-fp">
                       {absent ? <span className="fp none">no record</span>
-                        : <><span className={`fp ${a === "flip" ? "new" : a === "hold" ? "same" : ""}`}>#{fp8(n?.fp)}</span>
-                          {a === "hold" && <span className="fp-tag reuse">reused · same fingerprint</span>}
-                          {a === "flip" && <span className="fp-tag derive">re-derived · new fingerprint</span>}
-                          {n?.verified === "MATCH" && !a && <span className="fp-tag ok">✓ verified</span>}</>}
+                        : <><span className={`fp ${a === "flip" ? "new" : a === "hold" ? "same" : ""}`} title="a short code that only changes when this answer changes">#{fp8(n?.fp)}</span>
+                          {a === "hold" && <span className="fp-tag reuse">reused · code unchanged</span>}
+                          {a === "flip" && <span className="fp-tag derive">redone · code changed</span>}
+                          {n?.verified === "MATCH" && !a && <span className="fp-tag ok">✓ double-checked</span>}</>}
                     </div>
                   </div>
                 );
@@ -144,22 +144,22 @@ export default function Console() {
         {/* EXPERIMENTS — three claims, run by the judge */}
         <div className="rc-lab">
           <div className="rc-exp">
-            <div className="rc-exp-h"><span className="rc-exp-n">1</span>Nothing changed — ask again</div>
-            <p>Re-answering an unchanged dossier should recompute <b>nothing</b>. Watch every fingerprint stay identical and the price stay <b>$0.00</b>.</p>
+            <div className="rc-exp-h"><span className="rc-exp-n">1</span>Nothing changed? Ask again</div>
+            <p>Ask the same question again. Nothing changed, so nothing should be redone. Watch the price stay <b>$0.00</b> and every answer come straight from memory.</p>
             <button className="btn" onClick={doReask} disabled={busy || gone}>{busy ? "…" : "Ask again"}</button>
           </div>
           <div className="rc-exp">
             <div className="rc-exp-h"><span className="rc-exp-n">2</span>Change one source</div>
-            <p>Edit a source, then rebuild. Only its <b>dependency cone</b> re-derives (new fingerprints); everything else holds, reused free.</p>
+            <p>Edit a source and rebuild. Only the answers that <b>depend on it</b> are redone; everything else stays exactly as it was, for free.</p>
             <div className="rc-exp-row">
               <select value={source} onChange={(e) => setSource(e.target.value)}>{SOURCES.map((s) => <option key={s} value={s}>{s[0].toUpperCase() + s.slice(1)}</option>)}</select>
               <button className="btn ghost" onClick={doEdit} disabled={busy || gone}>Edit</button>
-              <button className="btn" onClick={doRederive} disabled={busy || gone || cone.length === 0}>{running ? "rebuilding…" : `Rebuild${cone.length ? ` (${cone.length})` : ""}`}</button>
+              <button className="btn" onClick={doRederive} disabled={busy || gone || cone.length === 0}>{running ? "redoing…" : `Rebuild${cone.length ? ` (${cone.length})` : ""}`}</button>
             </div>
           </div>
           <div className="rc-exp danger">
-            <div className="rc-exp-h"><span className="rc-exp-n">3</span>Is the memory load-bearing?</div>
-            <p>Delete the memory. If the dossier were hardcoded, nothing would change. Instead it <b>collapses</b> — then restores, warm.</p>
+            <div className="rc-exp-h"><span className="rc-exp-n">3</span>Does the memory really matter?</div>
+            <p>Delete the memory. If the answers were <b>hard-coded</b>, nothing would change. Instead the whole report disappears, then Restore brings it back.</p>
             <div className="rc-exp-row">
               <button className="btn ghost" onClick={doDelete} disabled={busy || gone}>Delete memory</button>
               <button className="btn" onClick={doRestore} disabled={busy || !gone}>Restore</button>
@@ -177,15 +177,15 @@ export default function Console() {
         {/* PROGRESSIVE DISCLOSURE — the deep Sibyl integrations, opt-in */}
         <div className="disclose">
           <details className="uh">
-            <summary><span><span className="uh-title">Under the hood</span> <span className="uh-sub">— all five Sibyl Memory tiers, load-bearing + keyword recall</span></span><span className="uh-chev">›</span></summary>
+            <summary><span><span className="uh-title">How it remembers</span> <span className="uh-sub">— the five Sibyl memory layers, and keyword search across them</span></span><span className="uh-chev">›</span></summary>
             <div className="uh-body"><div className="uh-grid"><FiveTier state={sstate} /><RecallPanel /></div></div>
           </details>
           <details className="uh">
-            <summary><span><span className="uh-title">On-chain proof &amp; provenance</span> <span className="uh-sub">— x402 payment on Base Sepolia, editable pricing, recover archived derivations</span></span><span className="uh-chev">›</span></summary>
+            <summary><span><span className="uh-title">Proof on the blockchain</span> <span className="uh-sub">— real per-answer payments on Base, editable pricing, recover old answers</span></span><span className="uh-chev">›</span></summary>
             <div className="uh-body"><div className="uh-grid"><AnchorPanel adminToken={token} /><DoctrineEditor adminToken={token} onChanged={poll} /><TimeMachinePanel adminToken={token} onChanged={poll} /></div></div>
           </details>
           <details className="uh">
-            <summary><span><span className="uh-title">Agent commons</span> <span className="uh-sub">— what other agents have already derived, reused across the network</span></span><span className="uh-chev">›</span></summary>
+            <summary><span><span className="uh-title">Shared memory</span> <span className="uh-sub">— what other AIs have already worked out, reused across the network</span></span><span className="uh-chev">›</span></summary>
             <div className="uh-body"><div className="uh-grid"><CommonsPanel adminToken={token} /></div></div>
           </details>
         </div>
