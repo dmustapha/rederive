@@ -106,14 +106,37 @@ SYNTHS = [  # (node, [inputs], ask, required_keys, fp_keys)
      "\"overall\": number 0-100, \"strongest\": str<=8w, \"weakest\": str<=8w}.",
      ["band", "overall", "strongest", "weakest"], ["band"]),
     ("s_verdict", ["s_risk", "s_score"],
-     "Return {\"verdict\": \"avoid\"|\"caution\"|\"promising\"|\"strong\", \"one_liner\": str<=12w}.",
+     # D-4: a free verdict flips at the caution/promising boundary even at temp 0 (measured 4:1).
+     # Pin it to a DETERMINISTIC matrix over the two stable inputs (risk_level x band) so identical
+     # inputs always map to the same verdict. The LLM looks up the cell; it does not decide freely.
+     "verdict = MATRIX[risk_level][band] using this exact table: "
+     "low: {weak:caution, fair:promising, good:strong, excellent:strong}; "
+     "medium: {weak:avoid, fair:caution, good:promising, excellent:strong}; "
+     "high: {weak:avoid, fair:avoid, good:caution, excellent:promising}. "
+     "Return {\"verdict\": <matrix cell>, \"one_liner\": str<=12w}.",
      ["verdict", "one_liner"], ["verdict"]),
 ]
+
+# D-4 (NN-4): synthesis reads metric VALUES, but stored metric dicts carry a free-text `basis`
+# (and synth dicts carry top_risks/one_liner/overall prose) that DRIFTS across LLM runs. Feeding
+# that prose into the synthesis prompt destabilizes the synthesis decision enum (measured: s_risk
+# MISMATCH from basis noise). Project every input to its STABLE decision field(s) before prompting,
+# so synthesis sees only reproducible enums — pure transform of `values` (NN-1 preserved, no globals).
+_NOISE = ("basis", "top_risks", "one_liner", "strongest", "weakest", "overall")
+
+def _stable_view(values: dict) -> dict:
+    out = {}
+    for ref, v in values.items():
+        if isinstance(v, dict):
+            out[ref] = {k: v[k] for k in v if k not in _NOISE} or v
+        else:
+            out[ref] = v
+    return out
 
 def _synth(node: str, ask: str, req: list[str], fp_keys: list[str]):
     def fn(values: dict) -> dict:
         return complete_json(f"You synthesize a due-diligence conclusion from metric values. {STRUCT_RULES}",
-                             f"METRIC VALUES:\n{values}\n\n{ask}", req)
+                             f"METRIC VALUES:\n{_stable_view(values)}\n\n{ask}", req)
     fn.__name__ = node
     fn._fp_keys = fp_keys   # NN-4: fingerprint the stable decision enum, not free prose / drifting number
     return fn
