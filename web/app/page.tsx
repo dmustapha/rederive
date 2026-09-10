@@ -2,11 +2,15 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Graph from "../components/Graph";
-import { PriceMeter, SourceEditor, Receipt, Controls } from "../components/panels";
+import { SourceEditor, Receipt, Controls } from "../components/panels";
 import {
   FiveTier, DoctrineEditor, RecallPanel, CommonsPanel, TimeMachinePanel, AnchorPanel,
 } from "../components/deep";
 import { StateResp, Receipt as ReceiptT, getJSON, postJSON } from "../lib/api";
+
+const COLD_UNIT = 0.02;          // doctrine unit price
+const TOTAL_DERIV = 24;          // 24 derivation nodes (6 sources not priced)
+const COLD = TOTAL_DERIV * COLD_UNIT;
 
 export default function Home() {
   const [state, setState] = useState<StateResp | null>(null);
@@ -62,24 +66,72 @@ export default function Home() {
     setReceipt(null); poll();
   };
 
+  // ── hero stat, derived from the live quote (the money moment) ──
+  const q = state?.quote;
+  const price = q ? q.total_usd : null;
+  const reused = q?.reused_count ?? 0;
+  const toDerive = q?.derived_count ?? 0;
+  const saved = q && COLD > 0 ? Math.round((1 - q.total_usd / COLD) * 100) : 0;
+  const kb = state?.db_bytes != null ? (state.db_bytes / 1024).toFixed(0) : null;
+  const warm = price === 0;
+
   return (
-    <main className="grid">
-      <header>
-        <div className="brand">
-          <h1>REDERIVE</h1>
-          <p>edit a source, re-derive only what changed — pay only for new work · built on Sibyl Memory</p>
+    <main className="stage">
+      {/* ── HERO: thesis + the live number as the centerpiece stat ── */}
+      <section className="hero">
+        <div className="hero-copy">
+          <div className="wordmark">REDERIVE</div>
+          <h1 className="hero-h">Watch cognition compile.</h1>
+          <p className="hero-p">
+            A due-diligence dossier is a dependency graph — 6 sources, 24 derivations. Edit one
+            source and only its <em>invalidation cone</em> re-derives; everything else is served from
+            memory at zero cost. Incremental compilation, for an agent&rsquo;s reasoning — built
+            load-bearing on all five Sibyl Memory tiers.
+          </p>
+          <div className="hero-tags">
+            <span className="htag">content-addressed</span>
+            <span className="htag">verify-on-serve</span>
+            <span className="htag">x402-metered</span>
+            <span className="htag">MCP · LangGraph</span>
+          </div>
         </div>
-        {state?.demo_free && (
-          <span className="badge" title="payment bypassed for the demo (honest label — MUST-NOT-CLAIM)">
-            demo mode · payment bypassed — real settlement in submission/proof.md
+
+        <div className={`hero-stat${warm ? " warm" : ""}`}>
+          <div className="hstat-k">next-run cost · live</div>
+          <div className="hstat-price">{price == null ? "—" : `$${price.toFixed(3)}`}</div>
+          <div className="hstat-row">
+            <span className="strike">cold ${COLD.toFixed(2)}</span>
+            {saved > 0 && <span className="save-chip">−{saved}% reused</span>}
+          </div>
+          <div className="hstat-sub">
+            {toDerive} to derive · {reused} of {TOTAL_DERIV} warm{kb ? ` · ${kb} KB in memory` : ""}
+          </div>
+          {state?.demo_free && (
+            <span className="badge" title="payment bypassed for the demo (honest label — MUST-NOT-CLAIM)">
+              demo mode · payment bypassed — real settlement in proof.md
+            </span>
+          )}
+        </div>
+      </section>
+
+      {/* ── COMPILE CONSOLE: the DAG, framed as the centerpiece ── */}
+      <section className="console">
+        <div className="console-bar">
+          <span className="console-t">dependency graph<span className="console-sub"> · sources → extractions → metrics → synthesis</span></span>
+          <span className="legend">
+            <span className="lg"><i className="dot d" />derived</span>
+            <span className="lg"><i className="dot r" />reused</span>
+            <span className="lg"><i className="dot c" />cutoff</span>
+            <span className="lg"><i className="dot x" />invalidated</span>
+            <span className="lg"><i className="dot s" />source</span>
           </span>
-        )}
-      </header>
+        </div>
+        <div className="console-canvas"><Graph state={state} onVerify={verify} /></div>
+      </section>
 
-      <section className="graph"><Graph state={state} onVerify={verify} /></section>
-
-      <aside>
-        <PriceMeter quote={state?.quote} dbBytes={state?.db_bytes} />
+      {/* ── RECOMPILE RAIL: the hero action, laid out horizontally ── */}
+      <section className="actions">
+        <SourceEditor onEdit={edit} />
         <Controls
           running={running} onRun={run}
           onReset={() => admin("/reset")}
@@ -87,16 +139,27 @@ export default function Home() {
           onRestore={() => admin("/amnesia", { restore: true })}
           adminToken={adminToken} setAdminToken={setAdminToken}
         />
-        <SourceEditor onEdit={edit} />
         <Receipt receipt={receipt} />
-        <div className="rail-divider">deep Sibyl integration · §21</div>
+      </section>
+
+      {/* ── DEEP SIBYL INTEGRATION: below the fold, secondary grid ── */}
+      <section className="deep-head">deep Sibyl integration · all five tiers load-bearing · §21</section>
+      <section className="deep-grid">
         <FiveTier state={state} />
-        <DoctrineEditor adminToken={adminToken} onChanged={poll} />
         <RecallPanel />
         <CommonsPanel adminToken={adminToken} />
+        <DoctrineEditor adminToken={adminToken} onChanged={poll} />
         <TimeMachinePanel adminToken={adminToken} onChanged={poll} />
         <AnchorPanel adminToken={adminToken} />
-      </aside>
+      </section>
+
+      <footer className="stage-foot">
+        <span>Rederive · Sibyl Labs Memory Hackathon</span>
+        <span className="foot-links">
+          <a className="link" href="https://rederive-api.onrender.com/health" target="_blank" rel="noreferrer">API</a>
+          <a className="link" href="https://sepolia.basescan.org/address/0xc211C942946011859ca634F22400d80570ED12A5" target="_blank" rel="noreferrer">Base Sepolia settlements</a>
+        </span>
+      </footer>
     </main>
   );
 }
