@@ -11,3 +11,7 @@ node_modules/
 
 # Baked warm-seed demo fixture (committed on purpose — deploy re-hydrates from it)
 !api/seed/memory.warm.db
+
+# secrets / local
+.deploy-secrets.env
+web/.vercel/
