@@ -15,3 +15,8 @@ node_modules/
 # secrets / local
 .deploy-secrets.env
 web/.vercel/
+
+# pipeline state + logs (never published)
+.deploy-state.json
+*-state.json
+docs/pipeline/
