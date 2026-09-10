@@ -63,7 +63,7 @@ export default function Home() {
       <header>
         <div className="brand">
           <h1>REDERIVE</h1>
-          <p>incremental compilation for cognition · built on Sibyl Memory</p>
+          <p>edit a source, re-derive only what changed — pay only for new work · built on Sibyl Memory</p>
         </div>
         {state?.demo_free && (
           <span className="badge" title="payment bypassed for the demo (honest label — MUST-NOT-CLAIM)">
