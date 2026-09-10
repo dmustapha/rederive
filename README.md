@@ -21,7 +21,17 @@ A crypto-project due-diligence dossier is a graph: **6 raw sources → 6 extract
 
 Rederive treats cognition like a **build system**. Each derivation is content-addressed by a hash of its inputs. Edit one source and only the **invalidation cone** downstream of it re-derives; everything else is served straight from memory at zero cost. It's Bazel/Vercel-style incremental compilation, but for an agent's reasoning.
 
-The paying consumer is a **machine**: another agent calls the metered `/answer` endpoint (x402, dynamic price = the live quote) or pulls the memory over **MCP** / **LangGraph**. The web app is the human window into it, in two pages: a **landing** that explains the model and shows the live graph, and an **operator console** (`/console`) with a two-step flow, edit a source, then re-run, to watch the cone light up and the price drop from cold to warm.
+The paying consumer is a **machine**: another agent calls the metered `/answer` endpoint (x402, dynamic price = the live quote) or pulls the memory over **MCP** / **LangGraph**. The web app is the human window into it, in two pages: a **landing** that explains the model, and an **operator console** (`/console`) built as a **memory instrument**, everything on screen is served from memory, and three experiments let you prove it:
+
+1. **Ask again (nothing changed)** → 0 conclusions recompute, all 24 reused, price stays **$0.000**, every content fingerprint identical.
+2. **Change one source** → only its **dependency cone** re-derives with new fingerprints; the rest hold, reused free.
+3. **Delete the memory** → the whole dossier collapses to "No Memory" and the memory gauge drops from 24/24 · ~460KB to **0/24 · 4KB**; Restore brings it back warm.
+
+Each conclusion wears its content fingerprint, so reuse (same hash) and recompute (new hash) are provable by eye, not taken on faith.
+
+<div align="center">
+<img src="./screenshots/live/rederive-console.png" alt="The operator console as a memory instrument: verdict, a memory gauge, 15 conclusions each with a content fingerprint, and three experiments that prove memory is load-bearing" width="820" />
+</div>
 
 ## The pricing model, why a re-answer costs $0.000
 
@@ -47,10 +57,12 @@ curl -s $API/quote
 # → {"total_usd": 0.0, "derived_count": 0, "reused_count": 24, ...}
 ```
 
-**The deletion test, proof the memory is load-bearing.** Grab the demo admin token from the console (it's pre-filled in the token field on [/console](https://rederive-five.vercel.app/console)), then:
+**The deletion test, proof the memory is load-bearing.** The easy path is one click on the [live console](https://rederive-five.vercel.app/console): in experiment 3, hit **Delete memory** and watch the dossier collapse and the gauge drop to 0/24, then **Restore**. To reproduce it at the API level, run the app locally with `./run.sh` (it sets `ADMIN_TOKEN=dev`) and use that token:
 
 ```bash
-TOKEN=<copy from the token field on /console>
+# run the app locally first (keyless): ./run.sh  → API on :8402
+API=http://localhost:8402
+TOKEN=dev            # set by ./run.sh for the local instance
 
 # ── B. Delete the memory → the intelligence vanishes, the cold price returns ──
 curl -s -X POST $API/amnesia -H "x-admin-token: $TOKEN"
@@ -67,7 +79,7 @@ curl -s $API/quote
 # → {"total_usd": 0.0, "derived_count": 0, ...}     ← back to WARM
 ```
 
-**The cone, edit one source, only 7 of 24 re-derive** (this re-derives via the LLM; the deployed API has the key, so it works out of the box):
+**The cone, edit one source, only 7 of 24 re-derive.** The edit and the quote are keyless; the final re-derive (`/answer`) calls the LLM, so either export `DEEPSEEK_API_KEY` for the local run, or point `API` at the deployed instance which already has the key:
 
 ```bash
 # ── D. Edit the token source → its invalidation cone lights up ──
