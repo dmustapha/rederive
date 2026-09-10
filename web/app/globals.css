@@ -373,6 +373,40 @@ b.t-good { color: #7fd6a6; } b.t-bad { color: #e88a7f; } b.t-mid { color: var(--
 .rc-explain b { color: var(--accent-hi); }
 .rc-secondary { margin-top: 4px; }
 
+/* ── guided walkthrough — one step at a time, human watches each process work ── */
+.wt-wrap { max-width: 1080px; margin: 0 auto; padding: 30px clamp(18px,5vw,40px) 72px; display: flex; flex-direction: column; gap: 20px; }
+.wt-intro h1 { font-size: clamp(28px,4.5vw,42px); font-weight: 700; letter-spacing: -0.02em; line-height: 1.05; color: #f6f4ee; }
+.wt-intro p { color: var(--text-2); font-size: var(--t-lg); margin-top: 12px; max-width: 68ch; line-height: 1.55; }
+.wt-intro b { color: var(--white); }
+.wt-status { display: flex; flex-wrap: wrap; gap: 10px; }
+.wt-stat { flex: 1; min-width: 120px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); padding: 11px 16px; }
+.wt-stat span { display: block; font-size: var(--t-xs); text-transform: uppercase; letter-spacing: 0.09em; color: var(--muted); margin-bottom: 4px; }
+.wt-stat b { font-family: var(--mono); font-size: 19px; font-weight: 650; color: var(--white); text-transform: capitalize; }
+.wt-stat b i { font-style: normal; font-size: 12px; color: var(--muted); font-weight: 400; }
+.wt-stat.mem b { color: var(--v-reused); }
+
+.wt-guide { background: linear-gradient(180deg, var(--surface), var(--bg)); border: 1px solid var(--border); border-radius: var(--r-lg, 16px); padding: 24px clamp(18px,3vw,30px); box-shadow: 0 8px 40px rgba(0,0,0,0.35); }
+.wt-guide-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.wt-step-n { font-family: var(--mono); font-size: var(--t-xs); text-transform: uppercase; letter-spacing: 0.12em; color: var(--accent); font-weight: 700; }
+.wt-dots { display: flex; gap: 7px; }
+.wt-dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--surface-3); transition: all 0.3s; }
+.wt-dots i.on { background: var(--accent); width: 22px; border-radius: 5px; }
+.wt-dots i.done { background: var(--v-reused); }
+.wt-title { font-size: clamp(23px,3.4vw,32px); font-weight: 700; letter-spacing: -0.02em; color: #f6f4ee; }
+.wt-sub { font-size: var(--t-lg); color: var(--text-2); margin-top: 8px; max-width: 64ch; line-height: 1.55; }
+.wt-action { margin-top: 20px; min-height: 46px; display: flex; align-items: center; }
+.wt-hint { font-size: var(--t-sm); color: var(--muted); } .wt-hint b { color: var(--accent); }
+.btn.lg { font-size: var(--t-lg); padding: 13px 26px; font-weight: 600; }
+.btn.lg.danger { background: transparent; color: var(--v-invalid); border: 1px solid var(--v-invalid); }
+.btn.lg.danger:hover { background: rgba(217,100,90,0.12); }
+.wt-result { margin-top: 16px; display: flex; gap: 11px; align-items: flex-start; font-size: var(--t-md); line-height: 1.5; border-radius: var(--r-md); padding: 14px 18px; animation: rc-flip 0.6s ease-out; }
+.wt-result.ok { background: rgba(79,174,122,0.1); border: 1px solid rgba(79,174,122,0.3); color: var(--text-1, #ecebe6); }
+.wt-result.bad { background: rgba(217,100,90,0.1); border: 1px solid rgba(217,100,90,0.3); color: var(--text-1, #ecebe6); }
+.wt-check { flex: none; font-weight: 700; font-size: 18px; }
+.wt-result.ok .wt-check { color: var(--v-reused); } .wt-result.bad .wt-check { color: var(--v-invalid); }
+.wt-nav { display: flex; justify-content: space-between; margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+.wt-hood { display: grid; grid-template-columns: repeat(auto-fit,minmax(300px,1fr)); gap: 14px; }
+
 /* ── who-uses-this strip — frames the console as the human window onto an agent-facing API ── */
 .rc-who { display: flex; align-items: baseline; gap: 12px; background: var(--accent-tint); border: 1px solid var(--border); border-radius: var(--r-md); padding: 12px 16px; font-size: var(--t-sm); color: var(--text-2); line-height: 1.5; }
 .rc-who-tag { flex: none; font-family: var(--mono); font-size: var(--t-xs); text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); font-weight: 700; }

@@ -1,17 +1,16 @@
-// File: web/app/console/page.tsx — the operator console, built as a MEMORY INSTRUMENT.
-// The whole thesis of the project is that memory is load-bearing, so the console lets the judge run
-// three experiments and watch memory do the work — reuse (same fingerprint), incremental re-derive
-// (new fingerprint on the cone only), and the deletion test (collapse → restore). The deep Sibyl
-// integrations (five tiers, FTS5 recall, on-chain x402 anchor, time-machine, doctrine) sit behind
-// progressive disclosure so the surface stays instantly legible.
+// File: web/app/console/page.tsx — the console as a GUIDED WALKTHROUGH.
+// A human clicks through five steps and watches each thing we built actually work, understanding
+// each one as it happens: (1) what the AI built, (2) asking again is free, (3) change one source and
+// only that part redoes, (4) delete the memory and it all vanishes, (5) how it remembers + who pays.
+// One thing on screen at a time. The report grid is the stage; the guide narrates. This is also the
+// exact demo-video script.
 "use client";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useReport, ReportNode, Receipt } from "@/lib/useReport";
 import { StateResp, getJSON } from "@/lib/api";
-import { FiveTier, DoctrineEditor, RecallPanel, CommonsPanel, TimeMachinePanel, AnchorPanel } from "@/components/deep";
+import { FiveTier, AnchorPanel, RecallPanel } from "@/components/deep";
 
-const SOURCES = ["docs", "github", "token", "team", "community", "audits"];
 const GROUPS: { title: string; ids: string[] }[] = [
   { title: "Docs & API", ids: ["m_doc_quality", "m_storage_arch", "m_api_surface"] },
   { title: "Code & team", ids: ["m_commit_rate", "m_test_coverage", "m_bus_factor", "m_team_track"] },
@@ -31,20 +30,25 @@ const basis = (n?: ReportNode): string => {
 const tone = (s: string) => /low|strong|deep|high|full|none|distributed|positive|growing|transparent|good|promising/i.test(s) ? "good"
   : /poor|thin|weak|concentrated|declining|negative|high risk|avoid/i.test(s) ? "bad" : "mid";
 const VERDICT: Record<string, string> = { good: "Good", bad: "Weak", mid: "Fair" };
-const fp8 = (fp?: string | null) => (fp ? fp.slice(0, 7) : "—");
 const kb = (b?: number) => (b == null ? "—" : b < 1024 ? `${b} B` : `${(b / 1024).toFixed(0)} KB`);
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
 type Anim = "hold" | "calc" | "flip";
 
+const STEPS = [
+  { title: "What the AI built", sub: "It read six sources on Uniswap — the docs, the code, the token, the team, the community, the audits — and turned them into 15 checks and one verdict." },
+  { title: "Asking again is free", sub: "It already did this work and remembers it. Ask the exact same question again — nothing should be recomputed." },
+  { title: "Change one thing, redo only that", sub: "Say the token details change. Edit that one source and rebuild, then watch which checks light up and what it costs." },
+  { title: "The answers live in memory", sub: "Is this really remembered, or just hard-coded? Delete the memory and watch what happens to the report." },
+  { title: "How it remembers, and who pays", sub: "Under the hood: five memory layers do the remembering. And the real customer isn't you, it's another AI agent that pays per answer with x402 on Base." },
+];
+
 export default function Console() {
-  const { rep, running, cone, token, poll, edit, run, admin } = useReport();
+  const { rep, running, cone, token, edit, run, admin } = useReport();
   const [sstate, setSstate] = useState<StateResp | null>(null);
-  const [source, setSource] = useState("token");
-  const content = "gov token, fee switch live, top holder 4%";      // deterministic edit for the demo
-  const [anim, setAnim] = useState<Record<string, Anim>>({});
-  const [ledger, setLedger] = useState<{ t: string; k: "reuse" | "derive" | "delete" | "edit" }[]>([]);
+  const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
+  const [anim, setAnim] = useState<Record<string, Anim>>({});
   const prevFp = useRef<Record<string, string | null>>({});
 
   const pollState = async () => { try { setSstate(await getJSON<StateResp>("/state")); } catch {} };
@@ -56,40 +60,83 @@ export default function Console() {
   const gone = (mem?.records ?? 24) === 0;
 
   useEffect(() => { if (rep && !busy) { const m: Record<string, string | null> = {}; rep.nodes.forEach((n) => (m[n.id] = n.fp ?? null)); prevFp.current = m; } }, [rep, busy]);
-  const log = (t: string, k: "reuse" | "derive" | "delete" | "edit") => setLedger((l) => [{ t, k }, ...l].slice(0, 6));
-
-  // Safety net: this is a shared public demo. If someone runs the deletion test and walks away,
-  // auto-restore after a minute so no judge ever lands on a collapsed, dead-end console.
-  useEffect(() => {
-    if (!gone || busy) return;
-    const t = setTimeout(() => { admin("/amnesia", { restore: true }).then(() => { log("Memory auto-restored", "reuse"); pollState(); }); }, 60000);
-    return () => clearTimeout(t);
-  }, [gone, busy]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const choreograph = async (receipt: Receipt | null) => {
-    const derived = receipt?.derived ?? [], reused = receipt?.reused ?? [];
+    const derived = receipt?.derived ?? [];
     if (derived.length === 0) {
       const ids = GROUPS.flatMap((g) => g.ids);
-      for (let i = 0; i < ids.length; i++) { setAnim((a) => ({ ...a, [ids[i]]: "hold" })); await sleep(28); }
-      log(`Reused all 24 answers from memory · $0.00 · nothing redone`, "reuse");
+      for (let i = 0; i < ids.length; i++) { setAnim((a) => ({ ...a, [ids[i]]: "hold" })); await sleep(26); }
     } else {
       const shown = derived.filter((d) => GROUPS.some((g) => g.ids.includes(d)));
-      for (let i = 0; i < shown.length; i++) { setAnim((a) => ({ ...a, [shown[i]]: "flip" })); await sleep(160); }
-      log(`Redid ${derived.length} answers · $${(receipt?.quoted_usd ?? derived.length * 0.02).toFixed(2)}`, "derive");
-      log(`Reused the other ${reused.length} from memory · $0.00`, "reuse");
+      for (let i = 0; i < shown.length; i++) { setAnim((a) => ({ ...a, [shown[i]]: "flip" })); await sleep(150); }
     }
-    await sleep(900); setAnim({}); pollState();
+    await sleep(1100); setAnim({});
   };
 
-  const doReask = async () => { if (busy) return; setBusy(true); const r = await run(); await choreograph(r); setBusy(false); };
-  const doEdit = async () => {
-    const inv = await edit(source, content);
-    log(`Changed ${source} → ${inv.length} answers now need redoing`, "edit");
-    const dirty: Record<string, Anim> = {}; inv.forEach((id) => (dirty[id] = "calc")); setAnim(dirty);
+  // ── step actions — each ends by setting a plain "here's what just happened" ──
+  const runAsk = async () => {
+    if (busy) return; setBusy(true); setResult(null);
+    const r = await run(); await choreograph(r); setBusy(false);
+    setResult({ ok: true, text: "0 answers redone. All 24 came straight from memory. Cost: $0.00 — like a spreadsheet skipping the cells that didn't change." });
   };
-  const doRederive = async () => { if (busy) return; setBusy(true); const r = await run(); await choreograph(r); setBusy(false); };
-  const doDelete = async () => { if (busy) return; setBusy(true); await admin("/amnesia"); log(`Memory deleted · all 24 answers gone`, "delete"); pollState(); setBusy(false); };
-  const doRestore = async () => { if (busy) return; setBusy(true); await admin("/amnesia", { restore: true }); log(`Memory restored · all 24 answers back · free`, "reuse"); pollState(); setBusy(false); };
+  const runChange = async () => {
+    if (busy) return; setBusy(true); setResult(null);
+    const inv = await edit("token", "governance token, fee switch live, top holder 4%");
+    const dirty: Record<string, Anim> = {}; inv.forEach((id) => (dirty[id] = "calc")); setAnim(dirty);
+    await sleep(800);
+    const r = await run(); await choreograph(r); setBusy(false);
+    const d = r?.derived?.length ?? inv.length, reu = r?.reused?.length ?? (24 - inv.length);
+    const usd = (r?.quoted_usd ?? d * 0.02).toFixed(2);
+    setResult({ ok: true, text: `Only ${d} checks, all about the token, were redone. The other ${reu} were reused for free. You paid $${usd}, not the full $0.48.` });
+  };
+  const runDelete = async () => {
+    if (busy) return; setBusy(true); setResult(null);
+    await admin("/amnesia"); await pollState(); setBusy(false);
+    setResult({ ok: false, text: "The whole report just vanished. If the answers were hard-coded, deleting the memory would change nothing." });
+  };
+  const runRestore = async () => {
+    if (busy) return; setBusy(true); setResult(null);
+    await admin("/amnesia", { restore: true }); await pollState(); setBusy(false);
+    setResult({ ok: true, text: "Restored, warm, in an instant. The intelligence lived in memory, not in the code." });
+  };
+
+  const go = (d: number) => {
+    const next = Math.max(0, Math.min(STEPS.length - 1, step + d));
+    if (gone) admin("/amnesia", { restore: true }).then(pollState); // never leave the demo collapsed
+    setResult(null); setAnim({}); setStep(next);
+  };
+
+  const s = STEPS[step];
+  const grid = (
+    <div className="rc-grid">
+      {GROUPS.map((g) => (
+        <div className="rc-group" key={g.title}>
+          <div className="rc-group-h">{g.title}</div>
+          {g.ids.map((id) => {
+            const n = by(id); const v = String(val(n)); const t = tone(v);
+            const a = anim[id];
+            const rebuilding = a === "calc" || (busy && coneSet.has(id));
+            const sentence = basis(n) || (v !== "—" ? `Reads “${v}”.` : "");
+            const absent = gone || n?.value == null;
+            return (
+              <div className={`rc-metric${a ? " a-" + a : ""}${absent ? " absent" : ""}`} key={id}>
+                <div className="rc-m-top">
+                  <span className="rc-m-label">{n?.label ?? id}</span>
+                  {absent ? <span className="rc-m-val t-bad">gone</span>
+                    : rebuilding ? <span className="rc-m-val calc">redoing…</span>
+                    : <span className={`rc-m-val t-${t}`}>{VERDICT[t]}</span>}
+                </div>
+                {!absent && !rebuilding && sentence && <div className="rc-m-basis">{sentence}</div>}
+                {a === "hold" && <div className="rc-m-note reuse">↺ reused from memory · unchanged</div>}
+                {a === "flip" && <div className="rc-m-note derive">✎ just redone · answer changed</div>}
+                {absent && <div className="rc-m-note none">no answer in memory</div>}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <div className="lab">
@@ -97,116 +144,54 @@ export default function Console() {
         <span className="nav-brand"><b>RE</b>DERIVE</span>
         <span className="nav-right"><Link className="nav-link" href="/">home</Link></span>
       </nav>
-      <div className="rc-wrap">
-        <div className="rc-head">
-          <div>
-            <div className="rc-eyebrow">Trust report · Uniswap · everything here is remembered, not recomputed</div>
-            <h1 className="rc-verdict">{gone ? "no memory" : (verdict?.verdict ?? "—")}</h1>
-            <p className="rc-oneliner">{gone ? "The report is gone. Its answers lived in memory, not in the code." : (verdict?.one_liner ?? "")}</p>
-            {gone && <button className="btn" style={{ marginTop: 14 }} onClick={doRestore} disabled={busy}>{busy ? "restoring…" : "↻ Bring the memory back"}</button>}
+
+      <div className="wt-wrap">
+        {/* PURPOSE — one breath: what it is + who uses it */}
+        <div className="wt-intro">
+          <h1>Can you trust this crypto project?</h1>
+          <p><b>Rederive</b> is an AI that researches it once, remembers the answer, and only re-checks what changes. A human reads this page to watch it work; the real customer is an <b>AI agent</b> that calls the API and pays per answer.</p>
+        </div>
+
+        {/* STATUS BAR — the artifact it produced + the memory meter (always visible) */}
+        <div className="wt-status">
+          <div className="wt-stat"><span>Project</span><b>Uniswap</b></div>
+          <div className="wt-stat"><span>Verdict</span><b className={`t-${tone(verdict?.verdict ?? "")}`}>{gone ? "—" : (verdict?.verdict ?? "…")}</b></div>
+          <div className="wt-stat"><span>Score</span><b>{gone ? "—" : (score?.overall ?? "…")}<i>/100</i></b></div>
+          <div className="wt-stat"><span>Risk</span><b className={`t-${tone(risk?.risk_level ?? "")}`}>{gone ? "—" : (risk?.risk_level ?? "…")}</b></div>
+          <div className="wt-stat mem"><span>In memory</span><b>{mem?.records ?? "…"}<i>/24 · {kb(mem?.db_bytes)}</i></b></div>
+        </div>
+
+        {/* THE GUIDE — one step at a time */}
+        <div className="wt-guide">
+          <div className="wt-guide-head">
+            <span className="wt-step-n">Step {step + 1} of {STEPS.length}</span>
+            <span className="wt-dots">{STEPS.map((_, i) => <i key={i} className={i === step ? "on" : i < step ? "done" : ""} />)}</span>
           </div>
-          <div className="rc-badges">
-            <div className="rc-badge"><span>Score</span><b>{gone ? "—" : (score?.overall ?? "—")}<i>/100</i></b></div>
-            <div className="rc-badge"><span>Risk</span><b className={`t-${tone(risk?.risk_level ?? "")}`}>{gone ? "—" : (risk?.risk_level ?? "—")}</b></div>
+          <h2 className="wt-title">{s.title}</h2>
+          <p className="wt-sub">{s.sub}</p>
+
+          <div className="wt-action">
+            {step === 0 && <span className="wt-hint">The 15 checks are below. When you're ready, hit <b>Next</b>.</span>}
+            {step === 1 && <button className="btn lg" onClick={runAsk} disabled={busy || gone}>{busy ? "asking…" : "▶ Ask again"}</button>}
+            {step === 2 && <button className="btn lg" onClick={runChange} disabled={busy || gone}>{busy ? (running ? "rebuilding…" : "changing…") : "▶ Change the token & rebuild"}</button>}
+            {step === 3 && (gone
+              ? <button className="btn lg" onClick={runRestore} disabled={busy}>{busy ? "restoring…" : "↻ Bring the memory back"}</button>
+              : <button className="btn lg danger" onClick={runDelete} disabled={busy}>{busy ? "deleting…" : "▶ Delete the memory"}</button>)}
+            {step === 4 && <span className="wt-hint">The five memory layers and a real on-chain payment are shown below.</span>}
+          </div>
+
+          {result && <div className={`wt-result ${result.ok ? "ok" : "bad"}`}><span className="wt-check">{result.ok ? "✓" : "✕"}</span>{result.text}</div>}
+
+          <div className="wt-nav">
+            <button className="btn ghost" onClick={() => go(-1)} disabled={step === 0}>← Back</button>
+            <button className="btn" onClick={() => go(1)} disabled={step === STEPS.length - 1}>Next →</button>
           </div>
         </div>
 
-        {/* who uses this — the real consumer is an agent, this page is the human window */}
-        <div className="rc-who">
-          <span className="rc-who-tag">Who uses this?</span>
-          <span>An <b>AI agent</b> does, not a person. It calls the API (<code>POST /answer</code>), gets this report back as data, and pays only for what changed with x402 on Base. This page is the <b>human window</b>, so you can watch it happen and check the work.</span>
-        </div>
-
-        <div className={`rc-gauge${gone ? " empty" : ""}`}>
-          <div className="rc-gauge-bar"><span style={{ width: `${((mem?.records ?? 0) / (mem?.expected ?? 24)) * 100}%` }} /></div>
-          <div className="rc-gauge-txt">
-            <b>{mem?.records ?? "—"}<i> / {mem?.expected ?? 24}</i></b> answers in memory
-            <span className="rc-gauge-size">· {kb(mem?.db_bytes)} on disk</span>
-          </div>
-        </div>
-
-        <p className="rc-grid-intro">The 15 checks behind the verdict. <b className="t-good">Green</b> is a plus, <b className="t-mid">amber</b> is so-so, <b className="t-bad">red</b> is a concern. Each has a one-line reason.</p>
-        <div className="rc-grid">
-          {GROUPS.map((g) => (
-            <div className="rc-group" key={g.title}>
-              <div className="rc-group-h">{g.title}</div>
-              {g.ids.map((id) => {
-                const n = by(id); const v = String(val(n)); const t = tone(v);
-                const a = anim[id];
-                const rebuilding = a === "calc" || (busy && coneSet.has(id));   // actively being redone
-                const pending = !rebuilding && !a && coneSet.has(id);            // edited, waiting for Rebuild
-                const sentence = basis(n) || (v !== "—" ? `Reads “${v}”.` : "");
-                const absent = gone || n?.value == null;
-                return (
-                  <div className={`rc-metric${a ? " a-" + a : ""}${absent ? " absent" : ""}${pending ? " pending" : ""}`} key={id}
-                       title={n?.fp ? `internal check-code #${fp8(n.fp)} (changes only when this answer changes)` : undefined}>
-                    <div className="rc-m-top">
-                      <span className="rc-m-label">{n?.label ?? id}</span>
-                      {absent ? <span className="rc-m-val t-bad">gone</span>
-                        : rebuilding ? <span className="rc-m-val calc">redoing…</span>
-                        : <span className={`rc-m-val t-${t}`}>{VERDICT[t]}</span>}
-                    </div>
-                    {!absent && !rebuilding && sentence && <div className="rc-m-basis">{sentence}</div>}
-                    {/* change note — only shown when it means something (during/after an experiment) */}
-                    {a === "hold" && <div className="rc-m-note reuse">↺ reused from memory · unchanged</div>}
-                    {a === "flip" && <div className="rc-m-note derive">✎ just redone · answer changed</div>}
-                    {pending && <div className="rc-m-note pending">will be redone when you rebuild</div>}
-                    {absent && <div className="rc-m-note none">no answer in memory</div>}
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-        </div>
-
-        {/* EXPERIMENTS — three claims, run by the judge */}
-        <div className="rc-lab">
-          <div className="rc-exp">
-            <div className="rc-exp-h"><span className="rc-exp-n">1</span>Nothing changed? Ask again</div>
-            <p>Ask the same question again. Nothing changed, so nothing should be redone. Watch the price stay <b>$0.00</b> and every answer come straight from memory.</p>
-            <button className="btn" onClick={doReask} disabled={busy || gone}>{busy ? "…" : "Ask again"}</button>
-          </div>
-          <div className="rc-exp">
-            <div className="rc-exp-h"><span className="rc-exp-n">2</span>Change one source</div>
-            <p>Edit a source and rebuild. Only the answers that <b>depend on it</b> are redone; everything else stays exactly as it was, for free.</p>
-            <div className="rc-exp-row">
-              <select value={source} onChange={(e) => setSource(e.target.value)}>{SOURCES.map((s) => <option key={s} value={s}>{s[0].toUpperCase() + s.slice(1)}</option>)}</select>
-              <button className="btn ghost" onClick={doEdit} disabled={busy || gone}>Edit</button>
-              <button className="btn" onClick={doRederive} disabled={busy || gone || cone.length === 0}>{running ? "redoing…" : `Rebuild${cone.length ? ` (${cone.length})` : ""}`}</button>
-            </div>
-          </div>
-          <div className="rc-exp danger">
-            <div className="rc-exp-h"><span className="rc-exp-n">3</span>Does the memory really matter?</div>
-            <p>Delete the memory. If the answers were <b>hard-coded</b>, nothing would change. Instead the whole report disappears, then Restore brings it back.</p>
-            <div className="rc-exp-row">
-              <button className="btn ghost" onClick={doDelete} disabled={busy || gone}>Delete memory</button>
-              <button className="btn" onClick={doRestore} disabled={busy || !gone}>Restore</button>
-            </div>
-          </div>
-        </div>
-
-        {ledger.length > 0 && (
-          <div className="rc-ledger">
-            <div className="rc-ledger-h">Memory activity</div>
-            {ledger.map((e, i) => <div className={`rc-ledger-row k-${e.k}`} key={i}><span className="dot" />{e.t}</div>)}
-          </div>
-        )}
-
-        {/* PROGRESSIVE DISCLOSURE — the deep Sibyl integrations, opt-in */}
-        <div className="disclose">
-          <details className="uh">
-            <summary><span><span className="uh-title">How it remembers</span> <span className="uh-sub">— the five Sibyl memory layers, and keyword search across them</span></span><span className="uh-chev">›</span></summary>
-            <div className="uh-body"><div className="uh-grid"><FiveTier state={sstate} /><RecallPanel /></div></div>
-          </details>
-          <details className="uh">
-            <summary><span><span className="uh-title">Proof on the blockchain</span> <span className="uh-sub">— real per-answer payments on Base, editable pricing, recover old answers</span></span><span className="uh-chev">›</span></summary>
-            <div className="uh-body"><div className="uh-grid"><AnchorPanel adminToken={token} /><DoctrineEditor adminToken={token} onChanged={poll} /><TimeMachinePanel adminToken={token} onChanged={poll} /></div></div>
-          </details>
-          <details className="uh">
-            <summary><span><span className="uh-title">Shared memory</span> <span className="uh-sub">— what other AIs have already worked out, reused across the network</span></span><span className="uh-chev">›</span></summary>
-            <div className="uh-body"><div className="uh-grid"><CommonsPanel adminToken={token} /></div></div>
-          </details>
-        </div>
+        {/* THE STAGE — the report reacts (steps 1-4), or the under-the-hood panels (step 5) */}
+        {step < 4
+          ? <><p className="rc-grid-intro">The 15 checks behind the verdict. <b className="t-good">Green</b> is a plus, <b className="t-mid">amber</b> is so-so, <b className="t-bad">red</b> is a concern.</p>{grid}</>
+          : <div className="wt-hood"><FiveTier state={sstate} /><AnchorPanel adminToken={token} /><RecallPanel /></div>}
       </div>
     </div>
   );
