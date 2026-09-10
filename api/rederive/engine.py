@@ -204,7 +204,14 @@ class Engine:
     # -- verify-on-serve (NN-4) --
     def verify(self, node: str, graph_fns: dict[str, tuple[list[str], Callable]]) -> dict:
         refs, fn = graph_fns[node]
-        stored = self._m.get_entity("derivation", node)["body"]
+        try:
+            stored = self._m.get_entity("derivation", node)["body"]
+        except NotFoundError:
+            # NN-4 honest failure mode: a prior MISMATCH auto-invalidated (archived) this node.
+            # A subsequent verify/read must return a clean verdict, never crash — the node is
+            # simply pending re-derivation (run_graph will rebuild it: NotFound -> executes).
+            return {"verdict": "STALE", "stored_fp": None, "fresh_fp": None,
+                    "reason": "node invalidated — re-derive to restore"}
         values = {}
         for ref in refs:
             kind, nm = ref.split(":", 1)

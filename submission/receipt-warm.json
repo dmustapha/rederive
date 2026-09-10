@@ -5,10 +5,7 @@
     "m_storage_arch",
     "m_doc_quality",
     "m_api_surface",
-    "m_utility",
-    "s_risk",
-    "s_score",
-    "s_verdict"
+    "m_utility"
   ],
   "reused": [
     "x_github",
@@ -26,9 +23,15 @@
     "m_sentiment",
     "m_growth",
     "m_audit_status",
-    "m_sec_incidents"
+    "m_sec_incidents",
+    "s_risk",
+    "s_score",
+    "s_verdict"
   ],
   "cutoff": [
-    "m_api_surface"
+    "m_storage_arch",
+    "m_doc_quality",
+    "m_api_surface",
+    "m_utility"
   ]
 }

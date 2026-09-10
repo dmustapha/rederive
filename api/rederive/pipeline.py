@@ -38,10 +38,19 @@ METRICS = [  # (metric_node, [input extraction nodes], question, enum/domain, ru
      "modular=pluggable components; sqlite/postgres=named db; onchain=generic on-chain store; else other"),
     ("m_doc_quality",   ["docs"],               "documentation quality",
      ["poor", "adequate", "strong"],
-     "poor=sparse/missing; adequate=covers core usage; strong=concepts+references+guides"),
+     # D-4 (DT-1): "quality" judgment drifted adequate/strong. Anchor to how many of the THREE
+     # concrete doc-artifact types are explicitly present: {conceptual guides, API/technical
+     # reference, worked examples/tutorials}. Deterministic count of named artifacts.
+     "count how many of these THREE are explicitly present in the claims: (1) conceptual guides, "
+     "(2) API/technical reference, (3) worked examples or tutorials. strong=all 3; adequate=exactly "
+     "2; poor=0 or 1. On uncertainty about an artifact's presence, do NOT count it"),
     ("m_api_surface",   ["docs"],               "size of the documented API surface",
      ["few", "some", "many"],
-     "few=<5 documented methods/actions; some=5-15; many=>15"),
+     # D-4 (DT-1): counting from prose drifted few/some. Count ONLY functions/methods/actions named
+     # explicitly in the claims; ignore vague mentions. Boundary is deterministic; on uncertainty
+     # about a name, do not count it (biases to the lower bucket = earliest enum).
+     "count ONLY distinct functions/methods/actions/endpoints named EXPLICITLY in the claims: "
+     "few=<5 named; some=5-15 named; many=>15 named. Do not infer un-named APIs; on doubt, fewer"),
     ("m_commit_rate",   ["github"],             "recent commit / development activity",
      ["low", "moderate", "high"],
      "low=stale/few commits; moderate=steady; high=>1k commits or visibly active development"),
@@ -53,13 +62,26 @@ METRICS = [  # (metric_node, [input extraction nodes], question, enum/domain, ru
      "concentrated=1-2 key people; moderate=small core team; distributed=large org or many contributors"),
     ("m_supply_risk",   ["token"],              "supply concentration risk",
      ["low", "medium", "high"],
-     "low=broad distribution/vested; medium=some concentration; high=large undistributed/unlocked share"),
+     # D-4 (DT-1): judgment rubric drifted high/medium on identical input. Anchor to the largest
+     # single-holder / unlocked / undistributed PERCENTAGE present in the claims (deterministic):
+     "use the largest holder-concentration or unlocked-supply PERCENT in the claims: "
+     "high if >= 50%; medium if 20% <= x < 50%; low if < 20% or no such percentage is present"),
     ("m_utility",       ["token", "docs"],      "token utility strength",
      ["weak", "moderate", "strong"],
-     "weak=speculative only; moderate=some protocol role; strong=governance/fees/core protocol role"),
+     # D-4 (DT-1): "strength" judgment drifted weak/strong. Anchor to how many of TWO concrete
+     # on-protocol roles are explicitly attributed to the token: {governance/voting rights,
+     # fee-capture or protocol-revenue role}. Deterministic count.
+     "count how many of these TWO roles the claims explicitly attribute to the token: "
+     "(1) governance/voting rights, (2) fee-capture or protocol-revenue share. strong=both; "
+     "moderate=exactly 1; weak=0 (speculative/none). On uncertainty about a role, do NOT count it"),
     ("m_liquidity",     ["token"],              "liquidity depth",
      ["thin", "moderate", "deep"],
-     "thin=low volume/TVL; moderate=mid; deep=billions TVL or very high volume"),
+     # D-4 (DT-1): threshold-anchored on the numeric TVL/volume claim so the enum is a DETERMINISTIC "
+     # function of the frozen input (was drifting deep/thin on the same claims). Use the largest
+     # TVL or volume value present in USD: deep>=$1B; moderate $50M-$1B; thin<$50M. If no TVL/volume
+     # number is present, choose thin."
+     "use the largest TVL or trading-volume number in the claims (USD): deep if >= 1e9; "
+     "moderate if 5e7 <= x < 1e9; thin if < 5e7 or no such number present"),
     ("m_team_track",    ["team"],               "team track-record",
      ["unproven", "mixed", "strong"],
      "unproven=anon/new; mixed=some history; strong=named founders with shipped, established product"),
@@ -67,9 +89,21 @@ METRICS = [  # (metric_node, [input extraction nodes], question, enum/domain, ru
      ["opaque", "partial", "transparent"],
      "opaque=anon/no disclosure; partial=some public info; transparent=named team + open governance"),
     ("m_sentiment",     ["community"],          "community sentiment",
-     ["negative", "mixed", "positive"], "overall tone of community/governance signal"),
+     ["negative", "mixed", "positive"],
+     # D-4 (DT-1): tone was under-determined by financial claims -> drifted positive/mixed. Anchor to
+     # governance participation + growth signals in the claims: positive if governance participation
+     # is high (>=60% voting/quorum) OR fee/TVL figures are strongly positive; negative if figures
+     # show decline or distress; mixed otherwise. Deterministic given the frozen numbers.
+     "positive if governance voting/quorum participation >= 60% OR TVL/fee figures are large and "
+     "healthy; negative if the numbers indicate decline or distress; otherwise mixed"),
     ("m_growth",        ["community", "github"],"growth trajectory",
-     ["declining", "flat", "growing"], "direction of usage/activity/participation over time"),
+     ["declining", "flat", "growing"],
+     # D-4 (DT-1): "direction over time" had no time-series in the claims -> drifted growing/flat.
+     # Anchor to absolute scale of the activity numbers present (a deterministic proxy): growing if
+     # the TVL/volume/commit figures are large (TVL>=$1B OR commits>=1000), declining only if the
+     # claims explicitly state a decrease, flat otherwise. Deterministic given the frozen numbers.
+     "growing if TVL >= 1e9 OR 30-day volume is very large OR commits >= 1000; declining only if a "
+     "claim explicitly states a decrease/drop; flat otherwise"),
     ("m_audit_status",  ["audits"],             "audit coverage",
      ["none", "partial", "full"],
      "none=unaudited; partial=1-2 audits; full=multiple independent audits + bug bounty"),
@@ -82,7 +116,12 @@ def _metric(node: str, question: str, enum: list[str], rubric: str):
     def fn(values: dict) -> dict:
         return complete_json(
             f"You compute ONE metric from structured claims. {STRUCT_RULES}"
-            f" \"value\" MUST be EXACTLY one of {enum}. Rubric: {rubric}.",
+            f" \"value\" MUST be EXACTLY one of {enum}. Rubric: {rubric}."
+            # D-4 (DT-1, NN-4): the value is a verify-on-serve identity field — it MUST be a
+            # deterministic function of the claims. Apply the rubric mechanically; do not use
+            # outside knowledge or judgement. If the rubric leaves a boundary ambiguous, pick the
+            # EARLIER option in the enum list so the same input always maps to the same value.
+            " Apply the rubric mechanically; on any tie pick the earliest enum option.",
             f"CLAIMS:\n{values}\n\nCompute: {question}.\n"
             "Return {\"value\": <enum>, \"basis\": str<=12w}.",
             ["value", "basis"])
