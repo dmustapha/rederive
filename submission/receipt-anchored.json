@@ -1,0 +1,44 @@
+{
+  "derived": [
+    "x_docs",
+    "x_github",
+    "x_token",
+    "m_storage_arch",
+    "m_doc_quality",
+    "m_api_surface",
+    "m_commit_rate",
+    "m_test_coverage",
+    "m_bus_factor",
+    "m_supply_risk",
+    "m_utility",
+    "m_liquidity",
+    "m_growth"
+  ],
+  "reused": [
+    "x_team",
+    "x_community",
+    "x_audits",
+    "m_team_track",
+    "m_transparency",
+    "m_sentiment",
+    "m_audit_status",
+    "m_sec_incidents",
+    "s_risk",
+    "s_score",
+    "s_verdict"
+  ],
+  "cutoff": [
+    "m_storage_arch",
+    "m_doc_quality",
+    "m_api_surface",
+    "m_commit_rate",
+    "m_test_coverage",
+    "m_bus_factor",
+    "m_supply_risk",
+    "m_utility",
+    "m_liquidity",
+    "m_growth"
+  ],
+  "anchor_tx": "0x926067592ee8873d4ec6b254f465849b9c2fb89b6041187586a0237c3f4a345d",
+  "receipt_hash": "0e6b3e99432850c3dc5291dc44bf4f239122a8ac29d023beb56752b61cb586c3"
+}
