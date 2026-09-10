@@ -1,174 +1,195 @@
-// File: web/app/console/page.tsx — the interactive operator console.
-// One clear path (Step 1 edit → Step 2 recompile); the deep machinery hides behind disclosure.
+// File: web/app/console/page.tsx — the operator console, built as a MEMORY INSTRUMENT.
+// The whole thesis of the project is that memory is load-bearing, so the console lets the judge run
+// three experiments and watch memory do the work — reuse (same fingerprint), incremental re-derive
+// (new fingerprint on the cone only), and the deletion test (collapse → restore). The deep Sibyl
+// integrations (five tiers, FTS5 recall, on-chain x402 anchor, time-machine, doctrine) sit behind
+// progressive disclosure so the surface stays instantly legible.
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import Graph from "../../components/Graph";
-import { Receipt } from "../../components/panels";
-import {
-  FiveTier, DoctrineEditor, RecallPanel, CommonsPanel, TimeMachinePanel, AnchorPanel,
-} from "../../components/deep";
-import { useRederive } from "../../lib/useRederive";
+import { useReport, ReportNode, Receipt } from "@/lib/useReport";
+import { StateResp, getJSON } from "@/lib/api";
+import { FiveTier, DoctrineEditor, RecallPanel, CommonsPanel, TimeMachinePanel, AnchorPanel } from "@/components/deep";
 
 const SOURCES = ["docs", "github", "token", "team", "community", "audits"];
-const COLD = 24 * 0.02;
+const GROUPS: { title: string; ids: string[] }[] = [
+  { title: "Docs & API", ids: ["m_doc_quality", "m_storage_arch", "m_api_surface"] },
+  { title: "Code & team", ids: ["m_commit_rate", "m_test_coverage", "m_bus_factor", "m_team_track"] },
+  { title: "Token", ids: ["m_supply_risk", "m_utility", "m_liquidity"] },
+  { title: "Community", ids: ["m_transparency", "m_sentiment", "m_growth"] },
+  { title: "Security", ids: ["m_audit_status", "m_sec_incidents"] },
+];
+const val = (n?: ReportNode) => {
+  const v = n?.value; if (v == null) return "—";
+  if (typeof v === "string") return v;
+  return v.value ?? v.risk_level ?? v.band ?? v.verdict ?? "—";
+};
+const basis = (n?: ReportNode): string => {
+  const v = n?.value; if (v == null || typeof v === "string") return "";
+  return v.basis ?? v.one_liner ?? (Array.isArray(v.top_risks) ? v.top_risks.join(", ") : "") ?? "";
+};
+const tone = (s: string) => /low|strong|deep|high|full|none|distributed|positive|growing|transparent|good|promising/i.test(s) ? "good"
+  : /poor|thin|weak|concentrated|declining|negative|high risk|avoid/i.test(s) ? "bad" : "mid";
+const VERDICT: Record<string, string> = { good: "Good", bad: "Weak", mid: "Fair" };
+const fp8 = (fp?: string | null) => (fp ? fp.slice(0, 7) : "—");
+const kb = (b?: number) => (b == null ? "—" : b < 1024 ? `${b} B` : `${(b / 1024).toFixed(0)} KB`);
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+type Anim = "hold" | "calc" | "flip";
 
 export default function Console() {
-  const { state, receipt, running, adminToken, setAdminToken, poll, run, edit, verify, admin } = useRederive();
+  const { rep, running, cone, token, poll, edit, run, admin } = useReport();
+  const [sstate, setSstate] = useState<StateResp | null>(null);
   const [source, setSource] = useState("token");
-  const [content, setContent] = useState("");
-  const [invalidated, setInvalidated] = useState<string[] | null>(null);
+  const content = "gov token, fee switch live, top holder 4%";      // deterministic edit for the demo
+  const [anim, setAnim] = useState<Record<string, Anim>>({});
+  const [ledger, setLedger] = useState<{ t: string; k: "reuse" | "derive" | "delete" | "edit" }[]>([]);
   const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
+  const prevFp = useRef<Record<string, string | null>>({});
 
-  const q = state?.quote;
-  const price = q ? q.total_usd : null;
-  const reused = q?.reused_count ?? 0;
-  const toDerive = q?.derived_count ?? 0;
-  const saved = q && COLD > 0 ? Math.round((1 - q.total_usd / COLD) * 100) : 0;
-  const warm = price === 0;
+  const pollState = async () => { try { setSstate(await getJSON<StateResp>("/state")); } catch {} };
+  useEffect(() => { pollState(); const id = setInterval(pollState, 2000); return () => clearInterval(id); }, []);
 
-  const applyEdit = async () => {
-    setBusy(true); setErr(null);
-    try { setInvalidated(await edit(source, content)); }
-    catch (e: any) { setErr(e?.message ?? "edit failed — check the admin token"); }
-    finally { setBusy(false); }
+  const by = (id: string) => rep?.nodes.find((n) => n.id === id);
+  const risk = by("s_risk")?.value, score = by("s_score")?.value, verdict = by("s_verdict")?.value;
+  const mem = rep?.memory; const coneSet = new Set(cone);
+  const gone = (mem?.records ?? 24) === 0;
+
+  useEffect(() => { if (rep && !busy) { const m: Record<string, string | null> = {}; rep.nodes.forEach((n) => (m[n.id] = n.fp ?? null)); prevFp.current = m; } }, [rep, busy]);
+  const log = (t: string, k: "reuse" | "derive" | "delete" | "edit") => setLedger((l) => [{ t, k }, ...l].slice(0, 6));
+
+  const choreograph = async (receipt: Receipt | null) => {
+    const derived = receipt?.derived ?? [], reused = receipt?.reused ?? [];
+    if (derived.length === 0) {
+      const ids = GROUPS.flatMap((g) => g.ids);
+      for (let i = 0; i < ids.length; i++) { setAnim((a) => ({ ...a, [ids[i]]: "hold" })); await sleep(28); }
+      log(`Reused all 24 conclusions from memory · $0.00 · fingerprints unchanged`, "reuse");
+    } else {
+      const shown = derived.filter((d) => GROUPS.some((g) => g.ids.includes(d)));
+      for (let i = 0; i < shown.length; i++) { setAnim((a) => ({ ...a, [shown[i]]: "flip" })); await sleep(160); }
+      log(`Re-derived ${derived.length} conclusions · $${(receipt?.quoted_usd ?? derived.length * 0.02).toFixed(2)} · new fingerprints`, "derive");
+      log(`Reused ${reused.length} from memory · $0.00 · fingerprints unchanged`, "reuse");
+    }
+    await sleep(900); setAnim({}); pollState();
   };
 
+  const doReask = async () => { if (busy) return; setBusy(true); const r = await run(); await choreograph(r); setBusy(false); };
+  const doEdit = async () => {
+    const inv = await edit(source, content);
+    log(`Edited ${source} → ${inv.length} conclusions invalidated in memory`, "edit");
+    const dirty: Record<string, Anim> = {}; inv.forEach((id) => (dirty[id] = "calc")); setAnim(dirty);
+  };
+  const doRederive = async () => { if (busy) return; setBusy(true); const r = await run(); await choreograph(r); setBusy(false); };
+  const doDelete = async () => { if (busy) return; setBusy(true); await admin("/amnesia"); log(`Memory deleted · 24 records gone · db collapsed to sources`, "delete"); pollState(); setBusy(false); };
+  const doRestore = async () => { if (busy) return; setBusy(true); await admin("/amnesia", { restore: true }); log(`Memory restored · 24 records warm · $0.00 to re-answer`, "reuse"); pollState(); setBusy(false); };
+
   return (
-    <>
+    <div className="lab">
       <nav className="nav">
-        <Link className="nav-brand" href="/"><b>RE</b>DERIVE</Link>
-        <span className="nav-right">
-          <Link className="nav-link" href="/">← Overview</Link>
-          {state?.demo_free && <span className="badge">demo mode · payment bypassed</span>}
-        </span>
+        <span className="nav-brand"><b>RE</b>DERIVE</span>
+        <span className="nav-right"><Link className="nav-link" href="/">home</Link></span>
       </nav>
-
-      <div className="console-wrap">
-        <div className="console-head">
+      <div className="rc-wrap">
+        <div className="rc-head">
           <div>
-            <h1>Operator console</h1>
-            <p>Edit a source, re-run the dossier, and watch only the changed cone recompute.</p>
+            <div className="rc-eyebrow">due-diligence dossier · Uniswap · everything below is served from memory</div>
+            <h1 className="rc-verdict">{gone ? "no memory" : (verdict?.verdict ?? "—")}</h1>
+            <p className="rc-oneliner">{gone ? "The dossier is gone. Its conclusions lived in memory — not the code." : (verdict?.one_liner ?? "")}</p>
           </div>
-          <div className={`readout${warm ? " warm" : ""}`}>
-            <div className="r-price">{price == null ? "—" : `$${price.toFixed(3)}`}</div>
-            <div className="r-sub">
-              <span className="r-strike">cold ${COLD.toFixed(2)}</span>
-              {toDerive} to derive · {reused}/24 warm{saved > 0 ? ` · −${saved}%` : ""}
+          <div className="rc-badges">
+            <div className="rc-badge"><span>Score</span><b>{gone ? "—" : (score?.overall ?? "—")}<i>/100</i></b></div>
+            <div className="rc-badge"><span>Risk</span><b className={`t-${tone(risk?.risk_level ?? "")}`}>{gone ? "—" : (risk?.risk_level ?? "—")}</b></div>
+          </div>
+        </div>
+
+        <div className={`rc-gauge${gone ? " empty" : ""}`}>
+          <div className="rc-gauge-bar"><span style={{ width: `${((mem?.records ?? 0) / (mem?.expected ?? 24)) * 100}%` }} /></div>
+          <div className="rc-gauge-txt">
+            <b>{mem?.records ?? "—"}<i> / {mem?.expected ?? 24}</i></b> conclusions in memory
+            <span className="rc-gauge-size">· {kb(mem?.db_bytes)} on disk</span>
+          </div>
+        </div>
+
+        <div className="rc-grid">
+          {GROUPS.map((g) => (
+            <div className="rc-group" key={g.title}>
+              <div className="rc-group-h">{g.title}</div>
+              {g.ids.map((id) => {
+                const n = by(id); const v = String(val(n)); const t = tone(v);
+                const a = anim[id]; const updating = a === "calc" || coneSet.has(id);
+                const sentence = basis(n) || (v !== "—" ? `Reads “${v}”.` : "");
+                const absent = gone || n?.value == null;
+                return (
+                  <div className={`rc-metric${a ? " a-" + a : ""}${absent ? " absent" : ""}`} key={id}>
+                    <div className="rc-m-top">
+                      <span className="rc-m-label">{n?.label ?? id}</span>
+                      {absent ? <span className="rc-m-val t-bad">gone</span>
+                        : <span className={`rc-m-val t-${t}`}>{updating ? "computing…" : VERDICT[t]}</span>}
+                    </div>
+                    {!absent && !updating && sentence && <div className="rc-m-basis">{sentence}</div>}
+                    <div className="rc-m-fp">
+                      {absent ? <span className="fp none">no record</span>
+                        : <><span className={`fp ${a === "flip" ? "new" : a === "hold" ? "same" : ""}`}>#{fp8(n?.fp)}</span>
+                          {a === "hold" && <span className="fp-tag reuse">reused · same fingerprint</span>}
+                          {a === "flip" && <span className="fp-tag derive">re-derived · new fingerprint</span>}
+                          {n?.verified === "MATCH" && !a && <span className="fp-tag ok">✓ verified</span>}</>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+
+        {/* EXPERIMENTS — three claims, run by the judge */}
+        <div className="rc-lab">
+          <div className="rc-exp">
+            <div className="rc-exp-h"><span className="rc-exp-n">1</span>Nothing changed — ask again</div>
+            <p>Re-answering an unchanged dossier should recompute <b>nothing</b>. Watch every fingerprint stay identical and the price stay <b>$0.00</b>.</p>
+            <button className="btn" onClick={doReask} disabled={busy || gone}>{busy ? "…" : "Ask again"}</button>
+          </div>
+          <div className="rc-exp">
+            <div className="rc-exp-h"><span className="rc-exp-n">2</span>Change one source</div>
+            <p>Edit a source, then rebuild. Only its <b>dependency cone</b> re-derives (new fingerprints); everything else holds, reused free.</p>
+            <div className="rc-exp-row">
+              <select value={source} onChange={(e) => setSource(e.target.value)}>{SOURCES.map((s) => <option key={s} value={s}>{s[0].toUpperCase() + s.slice(1)}</option>)}</select>
+              <button className="btn ghost" onClick={doEdit} disabled={busy || gone}>Edit</button>
+              <button className="btn" onClick={doRederive} disabled={busy || gone || cone.length === 0}>{running ? "rebuilding…" : `Rebuild${cone.length ? ` (${cone.length})` : ""}`}</button>
+            </div>
+          </div>
+          <div className="rc-exp danger">
+            <div className="rc-exp-h"><span className="rc-exp-n">3</span>Is the memory load-bearing?</div>
+            <p>Delete the memory. If the dossier were hardcoded, nothing would change. Instead it <b>collapses</b> — then restores, warm.</p>
+            <div className="rc-exp-row">
+              <button className="btn ghost" onClick={doDelete} disabled={busy || gone}>Delete memory</button>
+              <button className="btn" onClick={doRestore} disabled={busy || !gone}>Restore</button>
             </div>
           </div>
         </div>
 
-        <div className="work">
-          {/* the graph */}
-          <div className="canvas-card">
-            <div className="canvas-bar">
-              <span className="c-t">dependency graph</span>
-              <span className="legend">
-                <span className="lg"><i className="dot d" />derived</span>
-                <span className="lg"><i className="dot r" />reused</span>
-                <span className="lg"><i className="dot c" />cutoff</span>
-                <span className="lg"><i className="dot x" />invalidated</span>
-                <span className="lg"><i className="dot s" />source</span>
-              </span>
-            </div>
-            <div className="console-canvas"><Graph state={state} onVerify={verify} /></div>
+        {ledger.length > 0 && (
+          <div className="rc-ledger">
+            <div className="rc-ledger-h">Memory activity</div>
+            {ledger.map((e, i) => <div className={`rc-ledger-row k-${e.k}`} key={i}><span className="dot" />{e.t}</div>)}
           </div>
+        )}
 
-          {/* guided action */}
-          <div className="guide">
-            <div className="step">
-              <span className="step-n"><b>1</b> edit a source</span>
-              <p className="hint">Change a source&rsquo;s content — the graph marks everything downstream of it as invalidated.</p>
-              <select value={source} onChange={(e) => setSource(e.target.value)}>
-                {SOURCES.map((s) => <option key={s}>{s}</option>)}
-              </select>
-              <textarea rows={4} placeholder="paste new source content…" value={content}
-                onChange={(e) => setContent(e.target.value)} style={{ marginTop: 8 }} />
-              <button style={{ marginTop: 8 }} onClick={applyEdit} disabled={busy}>
-                {busy ? "invalidating…" : "Apply edit"}
-              </button>
-              {err && <div className="err">{err}</div>}
-              {invalidated && (
-                <div className="chips" style={{ marginTop: 10 }}>
-                  {invalidated.length === 0
-                    ? <span className="muted">no nodes invalidated (field-equal cutoff)</span>
-                    : invalidated.map((n) => <span key={n} className="chip cutoff">{n}</span>)}
-                </div>
-              )}
-            </div>
-
-            <div className="step">
-              <span className="step-n"><b>2</b> re-run the dossier</span>
-              <p className="hint">Only the invalidated cone recomputes; the rest is reused for free. Watch the price.</p>
-              <button onClick={run} disabled={running}>{running ? "deriving…" : "Re-run dossier"}</button>
-            </div>
-
-            <Receipt receipt={receipt} />
-          </div>
-        </div>
-
-        {/* PROGRESSIVE DISCLOSURE — the deep machinery, opt-in */}
+        {/* PROGRESSIVE DISCLOSURE — the deep Sibyl integrations, opt-in */}
         <div className="disclose">
           <details className="uh">
-            <summary>
-              <span><span className="uh-title">Under the hood</span> <span className="uh-sub">— all five Sibyl Memory tiers, load-bearing</span></span>
-              <span className="uh-chev">›</span>
-            </summary>
-            <div className="uh-body">
-              <div className="uh-grid">
-                <FiveTier state={state} />
-                <RecallPanel />
-                <CommonsPanel adminToken={adminToken} />
-              </div>
-            </div>
+            <summary><span><span className="uh-title">Under the hood</span> <span className="uh-sub">— all five Sibyl Memory tiers, load-bearing + keyword recall</span></span><span className="uh-chev">›</span></summary>
+            <div className="uh-body"><div className="uh-grid"><FiveTier state={sstate} /><RecallPanel /></div></div>
           </details>
-
           <details className="uh">
-            <summary>
-              <span><span className="uh-title">Provenance &amp; time-machine</span> <span className="uh-sub">— editable pricing, on-chain anchor, recover archived derivations</span></span>
-              <span className="uh-chev">›</span>
-            </summary>
-            <div className="uh-body">
-              <div className="uh-grid">
-                <DoctrineEditor adminToken={adminToken} onChanged={poll} />
-                <TimeMachinePanel adminToken={adminToken} onChanged={poll} />
-                <AnchorPanel adminToken={adminToken} />
-              </div>
-            </div>
+            <summary><span><span className="uh-title">On-chain proof &amp; provenance</span> <span className="uh-sub">— x402 payment on Base Sepolia, editable pricing, recover archived derivations</span></span><span className="uh-chev">›</span></summary>
+            <div className="uh-body"><div className="uh-grid"><AnchorPanel adminToken={token} /><DoctrineEditor adminToken={token} onChanged={poll} /><TimeMachinePanel adminToken={token} onChanged={poll} /></div></div>
           </details>
-
           <details className="uh">
-            <summary>
-              <span><span className="uh-title">Admin &amp; deletion test</span> <span className="uh-sub">— prove memory is load-bearing: amnesia → restore</span></span>
-              <span className="uh-chev">›</span>
-            </summary>
-            <div className="uh-body">
-              <div className="panel">
-                <h3>Deletion test · admin</h3>
-                <p className="hint" style={{ marginBottom: 10 }}>Rename the memory out and the dossier collapses to raw sources; restore brings it back warm, bit-for-bit.</p>
-                <div className="btn-row">
-                  <button className="ghost" onClick={() => admin("/amnesia")}>Amnesia (mv memory.db)</button>
-                  <button className="ghost" onClick={() => admin("/amnesia", { restore: true })}>Restore</button>
-                  <button className="ghost" onClick={() => admin("/reset")}>Reset</button>
-                </div>
-                <input placeholder="admin token" value={adminToken}
-                  onChange={(e) => setAdminToken(e.target.value)} style={{ marginTop: 10 }} />
-              </div>
-            </div>
+            <summary><span><span className="uh-title">Agent commons</span> <span className="uh-sub">— what other agents have already derived, reused across the network</span></span><span className="uh-chev">›</span></summary>
+            <div className="uh-body"><div className="uh-grid"><CommonsPanel adminToken={token} /></div></div>
           </details>
         </div>
       </div>
-
-      <footer className="foot">
-        <span>Rederive · Sibyl Labs Memory Hackathon</span>
-        <span className="foot-links">
-          <Link className="link" href="/">Overview</Link>
-          <a className="link" href="https://rederive-api.onrender.com/health" target="_blank" rel="noreferrer">API</a>
-          <a className="link" href="https://sepolia.basescan.org/address/0xc211C942946011859ca634F22400d80570ED12A5" target="_blank" rel="noreferrer">On-chain</a>
-        </span>
-      </footer>
-    </>
+    </div>
   );
 }

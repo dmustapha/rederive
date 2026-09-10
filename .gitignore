@@ -21,3 +21,8 @@ web/.vercel/
 *-state.json
 docs/pipeline/
 .ship-check.json
+
+# demo video project (built locally, delivered via submission platform)
+video/
+# dev-only console direction explorations (canonical console is /console)
+web/app/lab/

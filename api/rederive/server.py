@@ -101,9 +101,59 @@ def state():
     return s
 
 
+# Human-readable labels + stage for every node (UI reads this so the console can show plain
+# language — "Supply risk", not m_supply_risk. Presentation only; the engine keys are unchanged.)
+NODE_META = {
+    "docs": ("Docs", "source"), "github": ("GitHub", "source"), "token": ("Token", "source"),
+    "team": ("Team", "source"), "community": ("Community", "source"), "audits": ("Audits", "source"),
+    "x_docs": ("Docs facts", "extract"), "x_github": ("GitHub facts", "extract"),
+    "x_token": ("Token facts", "extract"), "x_team": ("Team facts", "extract"),
+    "x_community": ("Community facts", "extract"), "x_audits": ("Audit facts", "extract"),
+    "m_storage_arch": ("Storage architecture", "metric"), "m_doc_quality": ("Documentation quality", "metric"),
+    "m_api_surface": ("API surface", "metric"), "m_commit_rate": ("Commit activity", "metric"),
+    "m_test_coverage": ("Test coverage", "metric"), "m_bus_factor": ("Bus factor", "metric"),
+    "m_supply_risk": ("Supply risk", "metric"), "m_utility": ("Token utility", "metric"),
+    "m_liquidity": ("Liquidity depth", "metric"), "m_team_track": ("Team track record", "metric"),
+    "m_transparency": ("Transparency", "metric"), "m_sentiment": ("Community sentiment", "metric"),
+    "m_growth": ("Growth trajectory", "metric"), "m_audit_status": ("Audit coverage", "metric"),
+    "m_sec_incidents": ("Security incidents", "metric"),
+    "s_risk": ("Risk", "verdict"), "s_score": ("Score", "verdict"), "s_verdict": ("Verdict", "verdict"),
+}
+
+
 @app.get("/quote")
 def quote():
     return engine.quote(GRAPH)
+
+
+@app.get("/report")
+def report():
+    """Rich, human-readable view of the whole dossier: every node's plain label, stage, verdict,
+    and current value — so the UI can show the actual product (a due-diligence report), not just
+    the graph plumbing. Presentation layer over the same memory; no re-derivation."""
+    s = engine.graph_state(GRAPH, last_report)
+    vmap = {n["id"]: n for n in s["nodes"]}
+    out = []
+    records = 0
+    for nid, (label, stage) in NODE_META.items():
+        # sources live under src_<id> in graph_state; derivations under their bare id
+        node = vmap.get(f"src_{nid}" if stage == "source" else nid, {})
+        value = None
+        try:
+            if stage == "source":
+                body = engine._m.get_entity("source", nid)["body"]
+                value = body.get("content") if isinstance(body, dict) else body
+            else:
+                value = engine.get_derivation(nid).get("value")
+                if value is not None: records += 1     # a live conclusion held in memory
+        except Exception:                       # noqa: BLE001 — archived/missing node -> value None
+            value = None
+        out.append({"id": nid, "label": label, "stage": stage,
+                    "verdict": node.get("verdict"), "verified": verified.get(nid),
+                    "value": value, "fp": node.get("fp")})   # fp = content fingerprint (proof of reuse)
+    # memory gauge: 24 conclusions expected; db_bytes = physical weight of the memory on disk
+    return {"nodes": out, "edges": s["edges"], "quote": engine.quote(GRAPH),
+            "demo_free": DEMO_FREE, "memory": {"records": records, "expected": 24, "db_bytes": s.get("db_bytes", 0)}}
 
 
 @app.post("/answer")
