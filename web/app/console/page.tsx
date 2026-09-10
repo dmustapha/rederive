@@ -125,30 +125,33 @@ export default function Console() {
           </div>
         </div>
 
+        <p className="rc-grid-intro">The 15 checks behind the verdict. <b className="t-good">Green</b> is a plus, <b className="t-mid">amber</b> is so-so, <b className="t-bad">red</b> is a concern. Each has a one-line reason.</p>
         <div className="rc-grid">
           {GROUPS.map((g) => (
             <div className="rc-group" key={g.title}>
               <div className="rc-group-h">{g.title}</div>
               {g.ids.map((id) => {
                 const n = by(id); const v = String(val(n)); const t = tone(v);
-                const a = anim[id]; const updating = a === "calc" || coneSet.has(id);
+                const a = anim[id];
+                const rebuilding = a === "calc" || (busy && coneSet.has(id));   // actively being redone
+                const pending = !rebuilding && !a && coneSet.has(id);            // edited, waiting for Rebuild
                 const sentence = basis(n) || (v !== "—" ? `Reads “${v}”.` : "");
                 const absent = gone || n?.value == null;
                 return (
-                  <div className={`rc-metric${a ? " a-" + a : ""}${absent ? " absent" : ""}`} key={id}>
+                  <div className={`rc-metric${a ? " a-" + a : ""}${absent ? " absent" : ""}${pending ? " pending" : ""}`} key={id}
+                       title={n?.fp ? `internal check-code #${fp8(n.fp)} (changes only when this answer changes)` : undefined}>
                     <div className="rc-m-top">
                       <span className="rc-m-label">{n?.label ?? id}</span>
                       {absent ? <span className="rc-m-val t-bad">gone</span>
-                        : <span className={`rc-m-val t-${t}`}>{updating ? "computing…" : VERDICT[t]}</span>}
+                        : rebuilding ? <span className="rc-m-val calc">redoing…</span>
+                        : <span className={`rc-m-val t-${t}`}>{VERDICT[t]}</span>}
                     </div>
-                    {!absent && !updating && sentence && <div className="rc-m-basis">{sentence}</div>}
-                    <div className="rc-m-fp">
-                      {absent ? <span className="fp none">no record</span>
-                        : <><span className={`fp ${a === "flip" ? "new" : a === "hold" ? "same" : ""}`} title="a short code that only changes when this answer changes">#{fp8(n?.fp)}</span>
-                          {a === "hold" && <span className="fp-tag reuse">reused · code unchanged</span>}
-                          {a === "flip" && <span className="fp-tag derive">redone · code changed</span>}
-                          {n?.verified === "MATCH" && !a && <span className="fp-tag ok">✓ double-checked</span>}</>}
-                    </div>
+                    {!absent && !rebuilding && sentence && <div className="rc-m-basis">{sentence}</div>}
+                    {/* change note — only shown when it means something (during/after an experiment) */}
+                    {a === "hold" && <div className="rc-m-note reuse">↺ reused from memory · unchanged</div>}
+                    {a === "flip" && <div className="rc-m-note derive">✎ just redone · answer changed</div>}
+                    {pending && <div className="rc-m-note pending">will be redone when you rebuild</div>}
+                    {absent && <div className="rc-m-note none">no answer in memory</div>}
                   </div>
                 );
               })}

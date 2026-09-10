@@ -390,6 +390,17 @@ b.t-good { color: #7fd6a6; } b.t-bad { color: #e88a7f; } b.t-mid { color: var(--
 .rc-gauge.empty .rc-gauge-bar span { background: var(--v-invalid); }
 .rc-gauge.empty { border-color: var(--v-invalid); }
 
+/* ── report intro + plain change-notes (fingerprints hidden at rest; shown as words during a run) ── */
+.rc-grid-intro { font-size: var(--t-sm); color: var(--muted); margin: -4px 0 2px; }
+.rc-grid-intro b { font-weight: 600; }
+.rc-m-note { font-size: var(--t-xs); margin-top: 5px; font-weight: 500; }
+.rc-m-note.reuse { color: var(--v-reused); }
+.rc-m-note.derive { color: var(--accent); }
+.rc-m-note.pending { color: var(--v-cutoff); }
+.rc-m-note.none { color: var(--v-invalid); font-style: italic; }
+.rc-m-val.calc { color: var(--accent); background: var(--accent-tint); font-family: var(--mono); font-size: var(--t-xs); font-weight: 600; padding: 3px 11px; border-radius: var(--r-pill); }
+.rc-metric.pending { opacity: 0.72; }
+
 /* ── fingerprint line under every conclusion — the incorruptible proof of reuse vs recompute ── */
 .rc-m-fp { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
 .fp { font-family: var(--mono); font-size: 10.5px; color: var(--muted); letter-spacing: 0.02em; transition: color 0.3s; }
