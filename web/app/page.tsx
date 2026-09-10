@@ -12,7 +12,11 @@ export default function Home() {
   const [state, setState] = useState<StateResp | null>(null);
   const [receipt, setReceipt] = useState<ReceiptT | null>(null);
   const [running, setRunning] = useState(false);
-  const [adminToken, setAdminToken] = useState("");
+  // On the public demo deploy, NEXT_PUBLIC_DEMO_ADMIN_TOKEN pre-fills the token so judges can
+  // drive the hero flow (edit → watch the cone), amnesia/deletion-test, and doctrine directly.
+  // Empty locally (dev enters it by hand). The API still gates every mutation; state self-heals
+  // (the baked warm seed re-hydrates on restart).
+  const [adminToken, setAdminToken] = useState(process.env.NEXT_PUBLIC_DEMO_ADMIN_TOKEN ?? "");
   const runningRef = useRef(false);
   runningRef.current = running;
 
