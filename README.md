@@ -178,6 +178,8 @@ Real gasless USDC settlements (EIP-3009), each resolvable on Basescan:
 ### Or run it locally — one command, no keys
 
 ```bash
+git clone https://github.com/dmustapha/rederive
+cd rederive
 ./run.sh          # API on :8402, UI on :3000 — open http://localhost:3000
 ```
 
@@ -195,7 +197,7 @@ Tests (no keys needed): `cd api && PYTHONPATH=. ../.venv/bin/python -m pytest` �
 
 ## Deployment
 
-Free-tier, no paid disk. `memory.db` persistence is achieved for $0 via a **baked warm-seed** re-hydrated on every cold boot ([`api/entrypoint.sh`](./api/entrypoint.sh)) plus optional [Litestream](https://litestream.io) replication to a free object store (env-gated). API on Render (Docker), UI on Vercel.
+API on Render (Docker), UI on Vercel. State hydrates from a committed warm seed on every boot ([`api/entrypoint.sh`](./api/entrypoint.sh)), so even a cold start comes up fully populated.
 
 ## Prior work
 
