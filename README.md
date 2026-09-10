@@ -9,7 +9,7 @@ Built load-bearing on all five [Sibyl Memory](https://sibyllabs.org) tiers, mete
 
 **[▶ Live app](https://rederive-five.vercel.app)** · **[Operator console](https://rederive-five.vercel.app/console)** · **[API](https://rederive-api.onrender.com/health)** · **[Base Sepolia settlements](https://sepolia.basescan.org/address/0xc211C942946011859ca634F22400d80570ED12A5)**
 
-<img src="./screenshots/live/rederive-hero.png" alt="Rederive — the landing page: incremental compilation for cognition, warm at $0.000" width="820" />
+<img src="./screenshots/live/rederive-hero.png" alt="Rederive, the landing page: incremental compilation for cognition, warm at $0.000" width="820" />
 
 </div>
 
@@ -17,13 +17,13 @@ Built load-bearing on all five [Sibyl Memory](https://sibyllabs.org) tiers, mete
 
 ## What it is
 
-A crypto-project due-diligence dossier is a graph: **6 raw sources → 6 extractions → 15 metrics → 3 synthesis conclusions = 24 derivations**. Recomputing the whole thing every time a single source changes is wasteful — most of the graph didn't move.
+A crypto-project due-diligence dossier is a graph: **6 raw sources → 6 extractions → 15 metrics → 3 synthesis conclusions = 24 derivations**. Recomputing the whole thing every time a single source changes is wasteful, most of the graph didn't move.
 
 Rederive treats cognition like a **build system**. Each derivation is content-addressed by a hash of its inputs. Edit one source and only the **invalidation cone** downstream of it re-derives; everything else is served straight from memory at zero cost. It's Bazel/Vercel-style incremental compilation, but for an agent's reasoning.
 
-The paying consumer is a **machine** — another agent calls the metered `/answer` endpoint (x402, dynamic price = the live quote) or pulls the memory over **MCP** / **LangGraph**. The web app is the human window into it, in two pages: a **landing** that explains the model and shows the live graph, and an **operator console** (`/console`) with a two-step flow — edit a source, then re-run — to watch the cone light up and the price drop from cold to warm.
+The paying consumer is a **machine**: another agent calls the metered `/answer` endpoint (x402, dynamic price = the live quote) or pulls the memory over **MCP** / **LangGraph**. The web app is the human window into it, in two pages: a **landing** that explains the model and shows the live graph, and an **operator console** (`/console`) with a two-step flow, edit a source, then re-run, to watch the cone light up and the price drop from cold to warm.
 
-## The pricing model — why a re-answer costs $0.000
+## The pricing model, why a re-answer costs $0.000
 
 **Price = (number of derivations actually executed) × unit cost.** The unit cost ($0.02) is read live from the REFERENCE memory tier, so it's editable without touching code. Three states:
 
@@ -33,11 +33,11 @@ The paying consumer is a **machine** — another agent calls the metered `/answe
 | **Warm** (nothing changed) | keys match memory → serve stored values | **0** | **$0.000** |
 | **Cone** (one source edited) | only the edited source's transitive cone | 7 (for `token`) | **$0.14** |
 
-So the **$0.000** you see on the live app is the *warm* price. The dossier was derived once (paid once, real LLM calls), and re-answering **reuses** it — a memory read, not a recompute, exactly like `make` skipping a file that hasn't changed. It's not "free work"; it's "no new work." The moment you edit a source, you pay again — but only for the part that actually changed (`$0.14`, not `$0.48`).
+So the **$0.000** you see on the live app is the *warm* price. The dossier was derived once (paid once, real LLM calls), and re-answering **reuses** it, a memory read, not a recompute, exactly like `make` skipping a file that hasn't changed. It's not "free work"; it's "no new work." The moment you edit a source, you pay again, but only for the part that actually changed (`$0.14`, not `$0.48`).
 
 ## Reproduce every claim yourself
 
-Every number above is checkable against the **live API** — zero setup, no keys. Copy-paste:
+Every number above is checkable against the **live API**: zero setup, no keys. Copy-paste:
 
 ```bash
 API=https://rederive-api.onrender.com
@@ -47,7 +47,7 @@ curl -s $API/quote
 # → {"total_usd": 0.0, "derived_count": 0, "reused_count": 24, ...}
 ```
 
-**The deletion test — proof the memory is load-bearing.** Grab the demo admin token from the console (it's pre-filled in the token field on [/console](https://rederive-five.vercel.app/console)), then:
+**The deletion test, proof the memory is load-bearing.** Grab the demo admin token from the console (it's pre-filled in the token field on [/console](https://rederive-five.vercel.app/console)), then:
 
 ```bash
 TOKEN=<copy from the token field on /console>
@@ -56,7 +56,7 @@ TOKEN=<copy from the token field on /console>
 curl -s -X POST $API/amnesia -H "x-admin-token: $TOKEN"
 # → {"ok": true, "db_present": false}
 curl -s $API/state | python3 -c "import sys,json; print('nodes:', len(json.load(sys.stdin)['nodes']))"
-# → nodes: 6      (only the raw sources remain — the 24 derivations are gone)
+# → nodes: 6      (only the raw sources remain, the 24 derivations are gone)
 curl -s $API/quote
 # → {"total_usd": 0.48, "derived_count": 24, ...}   ← full COLD price, nothing to reuse
 
@@ -67,14 +67,14 @@ curl -s $API/quote
 # → {"total_usd": 0.0, "derived_count": 0, ...}     ← back to WARM
 ```
 
-**The cone — edit one source, only 7 of 24 re-derive** (this re-derives via the LLM; the deployed API has the key, so it works out of the box):
+**The cone, edit one source, only 7 of 24 re-derive** (this re-derives via the LLM; the deployed API has the key, so it works out of the box):
 
 ```bash
 # ── D. Edit the token source → its invalidation cone lights up ──
 curl -s -X POST $API/edit -H "x-admin-token: $TOKEN" \
   -d '{"source":"token","content":"Fixed 100M supply, 45% team, 3mo cliff, no tokenomics audit."}'
 # → {"invalidated": ["x_token","m_supply_risk","m_utility","m_liquidity","s_risk","s_score","s_verdict"]}
-#    exactly 7 nodes — the token cone
+#    exactly 7 nodes, the token cone
 curl -s $API/quote
 # → {"total_usd": 0.14, "derived_count": 7, "reused_count": 17, ...}   ← pay only for the cone
 curl -s -X POST $API/answer            # re-derives the 7, returns the corrected dossier
@@ -92,30 +92,30 @@ curl -s -X POST $API/verify -d '{"node":"s_verdict"}'
 curl -s "$API/recall?q=liquidity"      # → 10 keyword hits across the memory
 
 # ── G. recompute the on-chain receipt anchor hash yourself ──
-python api/scripts/verify_claims.py    # exit 0 — the NN-8 hash matches what's on Base Sepolia
+python api/scripts/verify_claims.py    # exit 0, the NN-8 hash matches what's on Base Sepolia
 ```
 
-> The public instance runs `DEMO_FREE=1`, so **no USDC is charged to a visitor** — the prices above are the *quoted* amounts the engine computes. Proof that real money moves when demo mode is off = the four on-chain transactions below.
+> The public instance runs `DEMO_FREE=1`, so **no USDC is charged to a visitor**: the prices above are the *quoted* amounts the engine computes. Proof that real money moves when demo mode is off = the four on-chain transactions below.
 
 ## Memory is load-bearing (where every tier is used)
 
-Take the memory away and the core function *fails* (the deletion test above). Every derivation, price, and provenance record lives in Sibyl Memory — and **all five tiers fail a delete-test (NN-6), none is decoration**:
+Take the memory away and the core function *fails* (the deletion test above). Every derivation, price, and provenance record lives in Sibyl Memory, and **all five tiers fail a delete-test (NN-6), none is decoration**:
 
 | Sibyl tier | Role in Rederive | Call site (all in [`api/rederive/engine.py`](./api/rederive/engine.py)) |
 |-----------|------------------|-----------|
-| **WARM** (entity) | current derivations + sources | `set_entity` / `get_entity` — `engine.py:122,126,154` |
-| **COLD** (journal) | provenance: every derive is an event with its input hashes | `write_event` — `engine.py:121,157` |
-| **REFERENCE** (doctrine) | pricing + invalidation policy the engine *consults* (edit doctrine → price changes, no code change) | `set_reference` / `get_reference` — `engine.py:304,308,310` |
-| **ARCHIVE** | superseded/invalidated derivations kept for the time-machine | `archive_entity` — `engine.py:151,241` |
-| **HOT** (state) | live run cursor, survives restart | `set_state` / `get_state` — `engine.py` (`set_cursor`) |
-| **FTS5 recall** | keyword search across all tiers (the metered memory market) | `search` — `engine.py` (`recall`) |
+| **WARM** (entity) | current derivations + sources | `set_entity` / `get_entity`: `engine.py:122,126,154` |
+| **COLD** (journal) | provenance: every derive is an event with its input hashes | `write_event`: `engine.py:121,157` |
+| **REFERENCE** (doctrine) | pricing + invalidation policy the engine *consults* (edit doctrine → price changes, no code change) | `set_reference` / `get_reference`: `engine.py:304,308,310` |
+| **ARCHIVE** | superseded/invalidated derivations kept for the time-machine | `archive_entity`: `engine.py:151,241` |
+| **HOT** (state) | live run cursor, survives restart | `set_state` / `get_state`: `engine.py` (`set_cursor`) |
+| **FTS5 recall** | keyword search across all tiers (the metered memory market) | `search`: `engine.py` (`recall`) |
 | Multi-tenant commons | N analyst tenants on one SQLite file, cross-tenant attribution | [`api/rederive/commons.py`](./api/rederive/commons.py) |
 
 `MemoryClient.local(...)` is created once at `engine.py:53`.
 
 ## What the dossier contains (full scope)
 
-The 24 derivations, in four stages — each node reads only the stage above it (metrics read extractions, synthesis reads metrics), so an edit's effect is a clean cone:
+The 24 derivations, in four stages, each node reads only the stage above it (metrics read extractions, synthesis reads metrics), so an edit's effect is a clean cone:
 
 | Stage | Count | Nodes |
 |-------|-------|-------|
@@ -141,12 +141,12 @@ Real gasless USDC settlements (EIP-3009), each resolvable on Basescan:
 
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
-| GET | `/state` | full graph + verdicts + embedded quote (what the UI polls) | — |
-| GET | `/quote` | dry-run price of the next `/answer` (derived vs reused) | — |
+| GET | `/state` | full graph + verdicts + embedded quote (what the UI polls) | public |
+| GET | `/quote` | dry-run price of the next `/answer` (derived vs reused) | public |
 | POST | `/answer` | run the dossier; re-derive stale nodes, reuse the rest | x402 (metered) |
 | POST | `/edit` | re-ingest a source with new content → returns the invalidated cone | admin |
-| POST | `/verify` | re-derive a node, compare fingerprints (tamper check) | — |
-| POST | `/amnesia` | delete the memory (`{restore:true}` to bring it back) — the deletion test | admin |
+| POST | `/verify` | re-derive a node, compare fingerprints (tamper check) | public |
+| POST | `/amnesia` | delete the memory (`{restore:true}` to bring it back), the deletion test | admin |
 | POST | `/reset` | clear all derivations (sources stay) | admin |
 | GET | `/recall` | FTS5 keyword search across every tier | x402 (metered) |
 | GET/POST | `/doctrine` | read / edit the REFERENCE pricing policy (edit → price changes live) | admin (POST) |
@@ -165,25 +165,25 @@ Real gasless USDC settlements (EIP-3009), each resolvable on Basescan:
               content-addressed keys → edit a source, only its cone re-derives
 ```
 
-- **Engine** — [`api/rederive/engine.py`](./api/rederive/engine.py): the derive/quote/verify core (incremental cone, early cutoff, verify-on-serve).
-- **Pipeline** — [`api/rederive/pipeline.py`](./api/rederive/pipeline.py): the 24-node dossier graph + LLM extractors/metrics with stable-enum rubrics.
-- **Server** — [`api/rederive/server.py`](./api/rederive/server.py): FastAPI, 17 routes, x402 middleware, admin gating.
-- **Deep integration** — [`commons.py`](./api/rederive/commons.py) (multi-tenant), [`anchor.py`](./api/rederive/anchor.py) (NN-8 on-chain), [`langgraph_store.py`](./api/rederive/langgraph_store.py), [`mcp_server.py`](./api/rederive/mcp_server.py).
-- **UI** — [`web/`](./web): Next.js App Router, two pages — a landing ([`app/page.tsx`](./web/app/page.tsx)) and the reactflow operator console ([`app/console/page.tsx`](./web/app/console/page.tsx)) sharing one live-state hook ([`lib/useRederive.ts`](./web/lib/useRederive.ts)).
+- **Engine**: [`api/rederive/engine.py`](./api/rederive/engine.py): the derive/quote/verify core (incremental cone, early cutoff, verify-on-serve).
+- **Pipeline**: [`api/rederive/pipeline.py`](./api/rederive/pipeline.py): the 24-node dossier graph + LLM extractors/metrics with stable-enum rubrics.
+- **Server**: [`api/rederive/server.py`](./api/rederive/server.py): FastAPI, 17 routes, x402 middleware, admin gating.
+- **Deep integration**: [`commons.py`](./api/rederive/commons.py) (multi-tenant), [`anchor.py`](./api/rederive/anchor.py) (NN-8 on-chain), [`langgraph_store.py`](./api/rederive/langgraph_store.py), [`mcp_server.py`](./api/rederive/mcp_server.py).
+- **UI**: [`web/`](./web): Next.js App Router, two pages, a landing ([`app/page.tsx`](./web/app/page.tsx)) and the reactflow operator console ([`app/console/page.tsx`](./web/app/console/page.tsx)) sharing one live-state hook ([`lib/useRederive.ts`](./web/lib/useRederive.ts)).
 
 ## Run it
 
-**Nothing to set up — just open the live app.** [rederive-five.vercel.app](https://rederive-five.vercel.app) is fully configured (LLM provider, x402, warm seed). Open it, go to the [console](https://rederive-five.vercel.app/console), edit a source, and watch the cone re-derive. **No API keys, no wallet, no accounts.**
+**Nothing to set up, just open the live app.** [rederive-five.vercel.app](https://rederive-five.vercel.app) is fully configured (LLM provider, x402, warm seed). Open it, go to the [console](https://rederive-five.vercel.app/console), edit a source, and watch the cone re-derive. **No API keys, no wallet, no accounts.**
 
-### Or run it locally — one command, no keys
+### Or run it locally, one command, no keys
 
 ```bash
 git clone https://github.com/dmustapha/rederive
 cd rederive
-./run.sh          # API on :8402, UI on :3000 — open http://localhost:3000
+./run.sh          # API on :8402, UI on :3000, open http://localhost:3000
 ```
 
-`run.sh` creates the venv, installs deps, hydrates the **baked warm seed**, and boots both servers. With **zero API keys** you get the full warm dossier, the deletion test (amnesia → restore), recall, pricing, the on-chain anchor view, and the commons — all served from memory. (Verified end-to-end: the UI comes up warm at `$0.000` against the local API.)
+`run.sh` creates the venv, installs deps, hydrates the **baked warm seed**, and boots both servers. With **zero API keys** you get the full warm dossier, the deletion test (amnesia → restore), recall, pricing, the on-chain anchor view, and the commons, all served from memory. (Verified end-to-end: the UI comes up warm at `$0.000` against the local API.)
 
 The **only** thing that needs an LLM key is re-deriving an *edited* source's cone live (scenario **D** above). For that, either export one key before running, or just use the deployed app (already configured):
 
@@ -193,7 +193,7 @@ export AGENTROUTER_API_KEY=sk-...     # Anthropic-wire /v1/messages
 ./run.sh
 ```
 
-Tests (no keys needed): `cd api && PYTHONPATH=. ../.venv/bin/python -m pytest` — **26 passing**, incl. deletion-test, cutoff-refund, verify-on-serve, and self-falsification + no-op ablation.
+Tests (no keys needed): `cd api && PYTHONPATH=. ../.venv/bin/python -m pytest`: **26 passing**, incl. deletion-test, cutoff-refund, verify-on-serve, and self-falsification + no-op ablation.
 
 ## Deployment
 
@@ -205,4 +205,4 @@ Built for the Sibyl Labs Memory Hackathon. Sibyl Memory (`sibyl-memory-client`, 
 
 ## License
 
-MIT — see [LICENSE](./LICENSE).
+MIT, see [LICENSE](./LICENSE).
