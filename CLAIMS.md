@@ -93,3 +93,9 @@ LIVE  deepseek-v4-flash: 'OK'
 recall hits: 3 | tiers: ['entity', 'journal']
 ```
 Each hit carries a `tier` label (SDK-native tags: `entity`=WARM cache, `journal`=COLD event — see DEV-011). Journal-FTS fallback retained + unit-tested for the no-`search` case.
+
+## C2 verify reproducibility (DT-1 / NN-4) — honest ledger
+- Initial DT-1 verify MISMATCHed: verify-on-serve re-derives via a non-deterministic LLM; free-integer metrics and 4 judgment-enums (m_doc_quality, m_api_surface, m_supply_risk, m_utility) drifted on identical input.
+- Fix (D-4): every metric emits a STABLE structured value; `_fp_keys=["value"]` so verify fingerprints only the decision, not prose; the 4 drifters anchored to concrete countable/numeric thresholds. Stability sweep (3x each): 15/15 metrics now deterministic.
+- Engine (NN-4): verify() returns a clean `STALE` verdict on an already-invalidated (auto-archived) node instead of crashing with NotFound — the honest self-correcting failure mode is now robust to re-reads.
+- PROVEN (fresh cold+warm on real deepseek-v4-flash): cold 24 derived / $0.48 (REFERENCE-read); one-source edit → 96% reuse / $0.16; 5 reused nodes (incl. former drifter m_supply_risk) verify MATCH twice each.
