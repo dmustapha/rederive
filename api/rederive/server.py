@@ -7,6 +7,7 @@ from fastapi import FastAPI, Header, HTTPException, Request
 from pydantic import BaseModel
 from .engine import Engine, RunReport, _ref_body
 from .engine import NotFoundError
+from .llm import LadderExhausted
 from .pipeline import dossier_graph, GRAPH_FNS, SOURCES
 
 DEMO_FREE = os.environ.get("DEMO_FREE", "0") == "1"
@@ -143,7 +144,14 @@ def verify(body: dict):
     node = body.get("node", "")
     if node not in GRAPH_FNS:
         raise HTTPException(400, "unknown node")
-    return engine.verify(node, GRAPH_FNS)
+    # verify() RE-DERIVES the node (an LLM call) to compare fingerprints. If the LLM ladder is
+    # unreachable (e.g. a host with no egress to the provider), that must degrade to an honest
+    # UNVERIFIED verdict — never a 500 (which the browser mislabels as a CORS error).
+    try:
+        return engine.verify(node, GRAPH_FNS)
+    except LadderExhausted:
+        return {"verdict": "UNVERIFIED", "stored_fp": None, "fresh_fp": None,
+                "reason": "re-derivation unavailable — LLM provider unreachable from this host"}
 
 
 @app.post("/reset")

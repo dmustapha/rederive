@@ -71,7 +71,7 @@ def complete_json(system: str, user: str, required_keys: list[str]) -> dict:
     order = list(_providers())
     if _session_model:                                    # sticky: probe once per session
         order.sort(key=lambda t: 0 if t[0] == _session_model else 1)
-    last_err = None
+    errors = []                                           # collect EVERY rung's error (not just last)
     for name, call in order:
         for _attempt in range(2):
             try:
@@ -82,10 +82,10 @@ def complete_json(system: str, user: str, required_keys: list[str]) -> dict:
                 _session_model = name
                 return obj
             except Exception as exc:                      # noqa: BLE001 — rung failure -> next
-                last_err = f"{name}: {exc}"
+                errors.append(f"{name}: {exc}")
                 continue
         continue
-    raise LadderExhausted(str(last_err))
+    raise LadderExhausted(" | ".join(errors[-len(order):]))  # full per-rung chain for diagnosis
 
 STRUCT_RULES = ("Output ONLY a JSON object, no prose, no markdown fences. Keys sorted. "
                 "Values MUST be numbers, booleans, enums from the given set, or strings <= 12 words. "
