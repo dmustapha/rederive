@@ -6,7 +6,7 @@ import { PriceMeter, SourceEditor, Receipt, Controls } from "../components/panel
 import {
   FiveTier, DoctrineEditor, RecallPanel, CommonsPanel, TimeMachinePanel, AnchorPanel,
 } from "../components/deep";
-import { API, StateResp, Receipt as ReceiptT, getJSON, postJSON } from "../lib/api";
+import { StateResp, Receipt as ReceiptT, getJSON, postJSON } from "../lib/api";
 
 export default function Home() {
   const [state, setState] = useState<StateResp | null>(null);
