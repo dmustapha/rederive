@@ -1,13 +1,15 @@
 <div align="center">
 
-<img src="./web/public/logo.svg" alt="Rederive" width="420" />
+<img src="./web/public/logo.png" alt="Rederive" width="120" />
+
+# REDERIVE
 
 ### Incremental compilation for cognition
 
 Agent-consumable due-diligence memory that re-derives **only what changed**.
 Built load-bearing on all five [Sibyl Memory](https://sibyllabs.org) tiers, metered with **x402 on Base**.
 
-**[▶ Live app](https://rederive-five.vercel.app)** · **[Operator console](https://rederive-five.vercel.app/console)** · **[API](https://rederive-api.onrender.com/health)** · **[Base Sepolia settlements](https://sepolia.basescan.org/address/0xc211C942946011859ca634F22400d80570ED12A5)**
+**[▶ Live app](https://rederive.xyz)** · **[Operator console](https://rederive.xyz/console)** · **[API](https://rederive-api.onrender.com/health)** · **[Base Sepolia settlements](https://sepolia.basescan.org/address/0xc211C942946011859ca634F22400d80570ED12A5)**
 
 <img src="./screenshots/live/rederive-hero.png" alt="Rederive, the landing page: incremental compilation for cognition, warm at $0.000" width="820" />
 
@@ -57,7 +59,7 @@ curl -s $API/quote
 # → {"total_usd": 0.0, "derived_count": 0, "reused_count": 24, ...}
 ```
 
-**The deletion test, proof the memory is load-bearing.** The easy path is one click on the [live console](https://rederive-five.vercel.app/console): in experiment 3, hit **Delete memory** and watch the dossier collapse and the gauge drop to 0/24, then **Restore**. To reproduce it at the API level, run the app locally with `./run.sh` (it sets `ADMIN_TOKEN=dev`) and use that token:
+**The deletion test, proof the memory is load-bearing.** The easy path is one click on the [live console](https://rederive.xyz/console): in experiment 3, hit **Delete memory** and watch the dossier collapse and the gauge drop to 0/24, then **Restore**. To reproduce it at the API level, run the app locally with `./run.sh` (it sets `ADMIN_TOKEN=dev`) and use that token:
 
 ```bash
 # run the app locally first (keyless): ./run.sh  → API on :8402
@@ -185,7 +187,7 @@ Real gasless USDC settlements (EIP-3009), each resolvable on Basescan:
 
 ## Run it
 
-**Nothing to set up, just open the live app.** [rederive-five.vercel.app](https://rederive-five.vercel.app) is fully configured (LLM provider, x402, warm seed). Open it, go to the [console](https://rederive-five.vercel.app/console), edit a source, and watch the cone re-derive. **No API keys, no wallet, no accounts.**
+**Nothing to set up, just open the live app.** [rederive.xyz](https://rederive.xyz) is fully configured (LLM provider, x402, warm seed). Open it, go to the [console](https://rederive.xyz/console), edit a source, and watch the cone re-derive. **No API keys, no wallet, no accounts.**
 
 ### Or run it locally, one command, no keys
 

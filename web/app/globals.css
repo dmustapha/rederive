@@ -70,7 +70,8 @@ em { font-style: normal; color: var(--accent); }
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--line);
 }
-.nav-brand { font-family: var(--mono); font-size: 14px; letter-spacing: 0.28em; font-weight: 600; color: var(--text); }
+.nav-brand { display: inline-flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 14px; letter-spacing: 0.28em; font-weight: 600; color: var(--text); }
+.nav-logo { width: 28px; height: 28px; border-radius: 7px; object-fit: cover; display: block; }
 .nav-brand b { color: var(--accent); font-weight: 600; }
 .nav-right { display: flex; align-items: center; gap: 20px; }
 .nav-link { color: var(--muted); font-size: var(--t-sm); transition: color 0.15s; }

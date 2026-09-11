@@ -16,7 +16,7 @@ export default function Landing() {
   return (
     <>
       <nav className="nav">
-        <span className="nav-brand"><b>RE</b>DERIVE</span>
+        <span className="nav-brand"><img className="nav-logo" src="/logo.png" alt="Rederive" /><b>RE</b>DERIVE</span>
         <span className="nav-right">
           <a className="nav-link" href="#how">How it works</a>
           <a className="nav-link" href="#proof">Proof</a>

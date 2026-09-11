@@ -187,7 +187,7 @@ export default function Console() {
   return (
     <div className="lab">
       <nav className="nav">
-        <span className="nav-brand"><b>RE</b>DERIVE</span>
+        <span className="nav-brand"><img className="nav-logo" src="/logo.png" alt="Rederive" /><b>RE</b>DERIVE</span>
         <span className="nav-right"><Link className="nav-link" href="/">home</Link></span>
       </nav>
 
