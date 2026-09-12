@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Rederive — Neon Depth</title>
+<link href="https://api.fontshare.com/v2/css?f[]=chillax@400,500,600,700&f[]=general-sans@400,500,600&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --base:#050e0d; --panel:#0b1a17; --panel2:#0e211c;
+  --emerald:#12c98a; --lime:#6bff9e; --acid:#c8ff3e; --cyan:#3ad6ff;
+  --good:#7dff8a; --fair:#ffca3a; --weak:#ff466e;
+  --ink:#eafff4; --muted:#7fa596; --dim:#4d6b60;
+  --edge:rgba(107,255,158,.28); --edge2:rgba(58,214,255,.22);
+  --glass:linear-gradient(155deg,rgba(18,201,138,.10),rgba(11,26,23,.55) 45%,rgba(5,14,13,.7));
+  --grad:linear-gradient(90deg,#12c98a,#6bff9e 45%,#c8ff3e);
+  --font-d:"Chillax",system-ui,sans-serif;
+  --font-b:"General Sans",system-ui,sans-serif;
+  --mono:"Spline Sans Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--base); color:var(--ink); font-family:var(--font-b);
+  line-height:1.55; -webkit-font-smoothing:antialiased; overflow-x:hidden;
+}
+/* ---- neon grid floor + depth fog ---- */
+.bg{position:fixed;inset:0;z-index:-2;overflow:hidden;pointer-events:none}
+.bg::before{content:"";position:absolute;inset:-20% -20% -40% -20%;
+  background:
+    radial-gradient(1200px 600px at 70% -10%,rgba(18,201,138,.18),transparent 60%),
+    radial-gradient(900px 500px at 10% 20%,rgba(58,214,255,.10),transparent 60%),
+    var(--base);}
+.grid-floor{position:absolute;left:-25%;right:-25%;bottom:-30%;height:70vh;
+  background-image:
+    linear-gradient(rgba(107,255,158,.22) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(107,255,158,.18) 1px,transparent 1px);
+  background-size:44px 44px;
+  transform:perspective(560px) rotateX(66deg);
+  transform-origin:bottom center;
+  mask-image:linear-gradient(transparent,#000 55%);
+  animation:floor 14s linear infinite; opacity:.65;}
+@keyframes floor{from{background-position:0 0}to{background-position:0 44px}}
+.fog{position:absolute;inset:0;background:linear-gradient(transparent 40%,rgba(5,14,13,.7) 78%,var(--base));}
+@media(prefers-reduced-motion:reduce){.grid-floor{animation:none}}
+
+/* ---- nav ---- */
+.nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(18px);
+  background:linear-gradient(180deg,rgba(5,14,13,.9),rgba(5,14,13,.55));
+  border-bottom:1px solid rgba(107,255,158,.14);}
+.nav-in{max-width:1200px;margin:0 auto;padding:14px 22px;display:flex;align-items:center;gap:20px}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--font-d);font-weight:700;font-size:18px;letter-spacing:.3px}
+.brand .re{color:var(--acid)}
+.brand svg{filter:drop-shadow(0 0 6px rgba(107,255,158,.6))}
+.tabs{display:flex;gap:4px;margin-left:auto;background:rgba(11,26,23,.6);padding:5px;border-radius:14px;border:1px solid rgba(107,255,158,.12)}
+.tab{font-family:var(--font-b);font-weight:500;font-size:13.5px;color:var(--muted);background:none;border:none;
+  padding:8px 15px;border-radius:10px;cursor:pointer;transition:.18s;letter-spacing:.2px}
+.tab:hover{color:var(--ink)}
+.tab.on{color:#04120c;background:var(--grad);box-shadow:0 0 18px rgba(107,255,158,.5)}
+.tab:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+
+/* ---- page system ---- */
+.page{display:none;animation:pgin .5s ease both}
+.page.on{display:block}
+@keyframes pgin{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+main{max-width:1200px;margin:0 auto;padding:0 22px}
+
+/* ---- shared ---- */
+.eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:2.5px;text-transform:uppercase;color:var(--emerald)}
+h1,h2,h3{font-family:var(--font-d);font-weight:600;line-height:1.08;letter-spacing:-.5px}
+.section{padding:74px 0;position:relative}
+.card{background:var(--glass);border:1px solid rgba(107,255,158,.16);border-radius:18px;
+  box-shadow:0 0 0 1px rgba(5,14,13,.4),0 22px 60px -30px rgba(0,0,0,.9),inset 0 1px 0 rgba(255,255,255,.06);
+  position:relative;overflow:hidden}
+.card::after{content:"";position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--lime),transparent);opacity:.5}
+.glow-btn{font-family:var(--font-b);font-weight:600;font-size:14.5px;color:#04120c;
+  background:var(--grad);border:none;border-radius:12px;padding:13px 24px;cursor:pointer;
+  box-shadow:0 0 22px rgba(107,255,158,.4);transition:.2s;letter-spacing:.2px}
+.glow-btn:hover{box-shadow:0 0 34px rgba(107,255,158,.75);transform:translateY(-1px)}
+.glow-btn:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+.ghost-btn{font-family:var(--font-b);font-weight:500;font-size:14px;color:var(--lime);
+  background:rgba(11,26,23,.6);border:1px solid rgba(107,255,158,.3);border-radius:12px;
+  padding:12px 22px;cursor:pointer;transition:.2s}
+.ghost-btn:hover{border-color:var(--lime);box-shadow:0 0 18px rgba(107,255,158,.3)}
+.mono{font-family:var(--mono)}
+.chip{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:12px;
+  padding:6px 12px;border-radius:999px;background:rgba(18,201,138,.1);border:1px solid rgba(107,255,158,.24);color:var(--lime)}
+.up{animation:up .7s ease both}@keyframes up{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+
+/* ================= LIVE COST TICKER HUD ================= */
+.ticker{display:flex;flex-wrap:wrap;gap:14px;align-items:stretch}
+.tk{flex:1;min-width:150px;background:linear-gradient(160deg,rgba(18,201,138,.14),rgba(5,14,13,.7));
+  border:1px solid rgba(107,255,158,.24);border-radius:16px;padding:16px 18px;position:relative;overflow:hidden}
+.tk::before{content:"";position:absolute;inset:0;background:radial-gradient(120px 60px at 80% -20%,rgba(107,255,158,.25),transparent);pointer-events:none}
+.tk .lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:1.6px;text-transform:uppercase;color:var(--muted)}
+.tk .val{font-family:var(--mono);font-weight:600;font-size:30px;margin-top:6px;
+  background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;
+  text-shadow:0 0 26px rgba(107,255,158,.35)}
+.tk .sub{font-family:var(--mono);font-size:11px;color:var(--emerald);margin-top:3px}
+.tk.pulse{animation:pulse .6s ease}
+@keyframes pulse{0%{box-shadow:0 0 0 rgba(107,255,158,0)}40%{box-shadow:0 0 40px rgba(107,255,158,.7);border-color:var(--acid)}100%{box-shadow:0 0 0 rgba(107,255,158,0)}}
+
+/* =============== LANDING =============== */
+.hero{padding:80px 0 40px;position:relative}
+.hero-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:44px;align-items:center}
+.hero h1{font-size:clamp(38px,6vw,68px)}
+.hero h1 .g{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p.lead{font-size:19px;color:var(--muted);margin-top:20px;max-width:520px}
+.hero .cta-row{display:flex;gap:14px;margin-top:30px;flex-wrap:wrap}
+.hero-art{padding:22px}
+.terminal{font-family:var(--mono);font-size:12.5px}
+.terminal .row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px dashed rgba(107,255,158,.12)}
+.terminal .k{color:var(--muted)}
+.terminal .v{color:var(--lime)}
+.heritage{font-family:var(--mono);font-size:12.5px;color:var(--dim);letter-spacing:.4px;margin-top:26px}
+.heritage b{color:var(--emerald)}
+
+.sec-head{max-width:640px;margin-bottom:40px}
+.sec-head h2{font-size:clamp(28px,4vw,42px);margin-top:12px}
+.sec-head p{color:var(--muted);font-size:16.5px;margin-top:14px}
+
+.three{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.feat{padding:26px}
+.feat .n{font-family:var(--mono);color:var(--cyan);font-size:12px;letter-spacing:2px}
+.feat h3{font-size:20px;margin:14px 0 10px}
+.feat p{color:var(--muted);font-size:14.5px}
+
+/* graph / cone visual */
+.moneyshot{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:center}
+.cone-wrap{padding:26px}
+.dag{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.node{aspect-ratio:1;border-radius:9px;border:1px solid rgba(107,255,158,.18);
+  background:rgba(11,26,23,.7);display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:10px;color:var(--dim);transition:.4s;position:relative}
+.node.src{border-color:rgba(58,214,255,.4);color:var(--cyan)}
+.node.reused{color:var(--emerald);border-color:rgba(18,201,138,.3)}
+.node.hot{background:radial-gradient(circle,rgba(200,255,62,.35),rgba(11,26,23,.9));
+  border-color:var(--acid);color:var(--acid);box-shadow:0 0 22px rgba(200,255,62,.55);animation:hotp 1.1s ease infinite}
+@keyframes hotp{0%,100%{box-shadow:0 0 18px rgba(200,255,62,.4)}50%{box-shadow:0 0 30px rgba(200,255,62,.85)}}
+.money-copy .math{font-family:var(--mono);font-size:15px;margin:18px 0;display:flex;flex-direction:column;gap:10px}
+.money-copy .math .line{display:flex;justify-content:space-between;padding:11px 15px;border-radius:11px;background:rgba(11,26,23,.6);border:1px solid rgba(107,255,158,.14)}
+.money-copy .math .old{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--weak)}
+.money-copy .math .new{color:var(--acid);font-weight:600}
+
+/* deletion */
+.delete-stage{padding:32px;text-align:center}
+.dstat{display:flex;justify-content:center;gap:40px;flex-wrap:wrap;margin:26px 0}
+.dstat .b .num{font-family:var(--mono);font-size:44px;font-weight:600;transition:.6s cubic-bezier(.4,0,.2,1)}
+.dstat .b .cap{font-family:var(--mono);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-top:4px}
+.dossier-bar{height:14px;border-radius:8px;background:var(--grad);box-shadow:0 0 22px rgba(107,255,158,.5);
+  transition:.7s cubic-bezier(.4,0,.2,1);margin:8px auto;max-width:520px}
+.collapsed .num{color:var(--weak)!important}
+.collapsed .dossier-bar{width:1%!important;box-shadow:0 0 22px rgba(255,70,110,.6)!important;background:var(--weak)!important}
+
+/* tiers */
+.tiers{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+.tier{padding:20px 16px;transition:.25s}
+.tier:hover{transform:translateY(-4px);border-color:var(--lime);box-shadow:0 0 26px rgba(107,255,158,.28)}
+.tier .t{font-family:var(--mono);font-size:12.5px;letter-spacing:1.5px;color:var(--acid)}
+.tier p{font-size:13px;color:var(--muted);margin-top:10px}
+.customer{margin-top:26px;padding:26px;display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+.customer .big{font-family:var(--font-d);font-size:26px;font-weight:600}
+.customer .big span{color:var(--acid)}
+
+/* onchain */
+.tx-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.tx{padding:16px 18px;display:flex;align-items:center;gap:14px;transition:.2s}
+.tx:hover{border-color:var(--cyan);box-shadow:0 0 20px rgba(58,214,255,.25)}
+.tx .dot{width:9px;height:9px;border-radius:50%;background:var(--lime);box-shadow:0 0 10px var(--lime)}
+.tx .h{font-family:var(--mono);font-size:14px;color:var(--ink)}
+.tx .s{font-family:var(--mono);font-size:11px;color:var(--emerald)}
+.contract-line{font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-top:18px;word-break:break-all}
+.contract-line b{color:var(--cyan)}
+
+/* footer */
+.footer{padding:60px 0 40px;border-top:1px solid rgba(107,255,158,.12);margin-top:40px;text-align:center}
+.footer .cta-big{font-family:var(--font-d);font-size:clamp(26px,4vw,40px);font-weight:600;margin-bottom:10px}
+.footer .cta-big .g{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.social{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:26px}
+.social a{font-family:var(--mono);font-size:12.5px;color:var(--muted);text-decoration:none;padding:9px 16px;
+  border:1px solid rgba(107,255,158,.2);border-radius:10px;transition:.2s}
+.social a:hover{color:var(--lime);border-color:var(--lime);box-shadow:0 0 16px rgba(107,255,158,.25)}
+
+/* =============== CONSOLE =============== */
+.statusbar{display:flex;flex-wrap:wrap;gap:0;border-radius:14px;overflow:hidden;margin:28px 0;border:1px solid rgba(107,255,158,.18)}
+.statusbar .sb{flex:1;min-width:130px;padding:14px 18px;background:rgba(11,26,23,.65);border-right:1px solid rgba(107,255,158,.12)}
+.statusbar .sb:last-child{border-right:none}
+.statusbar .sb .l{font-family:var(--mono);font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted)}
+.statusbar .sb .v{font-family:var(--mono);font-size:16px;font-weight:600;color:var(--lime);margin-top:4px}
+.console-grid{display:grid;grid-template-columns:1.4fr .9fr;gap:24px;align-items:start}
+.checkgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.grp-label{grid-column:1/-1;font-family:var(--mono);font-size:11px;letter-spacing:1.6px;text-transform:uppercase;color:var(--cyan);margin-top:8px}
+.chk{padding:12px 13px;border-radius:11px;background:rgba(11,26,23,.7);border:1px solid rgba(107,255,158,.14);transition:.35s}
+.chk .name{font-size:12.5px;color:var(--ink)}
+.chk .verdict{font-family:var(--mono);font-size:11px;margin-top:5px;font-weight:600}
+.chk.good{border-color:rgba(125,255,138,.3)}.chk.good .verdict{color:var(--good)}
+.chk.fair .verdict{color:var(--fair)}
+.chk.weak .verdict{color:var(--weak)}
+.chk.lit{box-shadow:0 0 22px rgba(200,255,62,.4);border-color:var(--acid);animation:hotp 1.2s ease infinite}
+.step-panel{padding:24px;position:sticky;top:90px}
+.step-panel .badge{font-family:var(--mono);font-size:11px;color:var(--acid);letter-spacing:1.5px}
+.step-panel h3{font-size:22px;margin:12px 0}
+.step-panel p{color:var(--muted);font-size:14.5px;min-height:66px}
+.step-dots{display:flex;gap:8px;margin:20px 0}
+.step-dots .d{width:9px;height:9px;border-radius:50%;background:rgba(107,255,158,.2);cursor:pointer;transition:.2s}
+.step-dots .d.on{background:var(--acid);box-shadow:0 0 12px var(--acid)}
+.step-panel .actrow{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+
+/* =============== INTEGRATE =============== */
+.paths{display:grid;gap:22px}
+.path{padding:28px}
+.path .head{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.path .num{font-family:var(--font-d);font-size:26px;font-weight:700;color:var(--acid);
+  width:46px;height:46px;display:flex;align-items:center;justify-content:center;
+  border-radius:12px;background:rgba(18,201,138,.12);border:1px solid rgba(107,255,158,.3)}
+.path h3{font-size:20px}
+.path .tag{font-family:var(--mono);font-size:11.5px;color:var(--cyan);margin-top:2px}
+pre{font-family:var(--mono);font-size:12.8px;line-height:1.65;background:#04100d;
+  border:1px solid rgba(107,255,158,.16);border-radius:12px;padding:18px 20px;overflow-x:auto;color:#cdeee0}
+pre .c{color:var(--dim)}pre .fn{color:var(--acid)}pre .kw{color:var(--cyan)}pre .st{color:var(--lime)}
+.pricing-band{padding:22px;display:flex;gap:26px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-top:8px}
+.pricing-band .p{font-family:var(--mono)}
+.pricing-band .p .big{font-size:26px;color:var(--acid);font-weight:600}
+.pricing-band .p .lbl{font-size:11px;color:var(--muted);letter-spacing:1.4px;text-transform:uppercase}
+
+/* =============== TOKEN =============== */
+.token-hero{text-align:center;padding:70px 0 30px}
+.token-hero h1{font-size:clamp(34px,6vw,60px)}
+.token-hero h1 .g{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.token-hero p{color:var(--muted);font-size:18px;margin:18px auto 0;max-width:560px}
+.thesis-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:12px}
+.thesis-grid .t{padding:24px}
+.thesis-grid .t .ic{font-family:var(--mono);color:var(--cyan);font-size:12px;letter-spacing:1.5px}
+.thesis-grid .t h3{font-size:18px;margin:12px 0 8px}
+.thesis-grid .t p{font-size:14px;color:var(--muted)}
+.chart-card{padding:30px;margin-top:12px;text-align:center;position:relative}
+.chart-card .soon{position:absolute;top:16px;right:16px;font-family:var(--mono);font-size:11px;
+  color:var(--fair);border:1px solid rgba(255,202,58,.4);border-radius:999px;padding:5px 12px;background:rgba(255,202,58,.08)}
+.spark{width:100%;height:120px;margin:18px 0}
+.buy-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+.buy-row .glow-btn[disabled]{opacity:.55;cursor:not-allowed;box-shadow:none}
+.token-links{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:12px}
+.token-links a{text-decoration:none;padding:16px;border-radius:13px;background:var(--glass);
+  border:1px solid rgba(107,255,158,.16);text-align:center;transition:.2s;display:block}
+.token-links a:hover{transform:translateY(-3px);border-color:var(--lime);box-shadow:0 0 22px rgba(107,255,158,.25)}
+.token-links a .k{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:1.3px}
+.token-links a .v{font-family:var(--font-d);font-size:16px;color:var(--ink);margin-top:6px}
+
+@media(max-width:860px){
+  .hero-grid,.moneyshot,.console-grid{grid-template-columns:1fr}
+  .three,.thesis-grid,.tx-grid,.checkgrid{grid-template-columns:1fr 1fr}
+  .tiers{grid-template-columns:1fr 1fr}
+  .token-links{grid-template-columns:1fr 1fr}
+  .tabs{width:100%;overflow-x:auto;margin-left:0}
+  .step-panel{position:static}
+}
+@media(max-width:560px){.three,.thesis-grid,.checkgrid,.tx-grid,.tiers{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="bg"><div class="grid-floor"></div><div class="fog"></div></div>
+
+<!-- NAV -->
+<header class="nav">
+  <div class="nav-in">
+    <div class="brand">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <path d="M12 2v20M12 8L5 4M12 8l7-4M12 14l-6 4M12 14l6 4" stroke="#c8ff3e" stroke-width="1.6" stroke-linecap="round"/>
+        <circle cx="12" cy="2" r="2" fill="#6bff9e"/><circle cx="5" cy="4" r="1.6" fill="#3ad6ff"/><circle cx="19" cy="4" r="1.6" fill="#3ad6ff"/>
+      </svg>
+      <span><span class="re">RE</span>DERIVE</span>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Pages">
+      <button class="tab on" data-page="landing" role="tab" aria-selected="true">Landing</button>
+      <button class="tab" data-page="console" role="tab" aria-selected="false">Console</button>
+      <button class="tab" data-page="integrate" role="tab" aria-selected="false">Integrate</button>
+      <button class="tab" data-page="token" role="tab" aria-selected="false">Token</button>
+    </nav>
+  </div>
+</header>
+
+<!-- ==================== LANDING ==================== -->
+<section class="page on" id="landing">
+<main>
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-grid">
+      <div class="up">
+        <div class="eyebrow">Incremental compilation for cognition</div>
+        <h1>Watch cognition <span class="g">compile.</span></h1>
+        <p class="lead">Rederive researches a crypto project once, remembers the answer in <b style="color:var(--ink)">Sibyl Memory</b>, and only re-checks what changes. A due-diligence dossier is a dependency graph — edit one source, only its cone re-derives. Everything else serves from memory, free.</p>
+        <div class="cta-row">
+          <button class="glow-btn" data-goto="console">Open the console →</button>
+          <button class="ghost-btn" data-goto="integrate">Integrate an agent</button>
+        </div>
+        <div class="heritage">A build system for an agent's reasoning. <b>The real customer is an AI agent</b> — it calls the metered API and pays per answer with x402 on Base.</div>
+      </div>
+      <div class="card hero-art up" style="animation-delay:.12s">
+        <div class="chip" style="margin-bottom:14px">● LIVE · Uniswap dossier</div>
+        <div class="terminal">
+          <div class="row"><span class="k">re-answer (warm)</span><span class="v" id="heroWarm">$0.00</span></div>
+          <div class="row"><span class="k">reused derivations</span><span class="v">24 / 24</span></div>
+          <div class="row"><span class="k">recomputed</span><span class="v">0</span></div>
+          <div class="row"><span class="k">cold run cost</span><span class="v">$0.48</span></div>
+          <div class="row" style="border:none"><span class="k">settled on</span><span class="v">Base · x402</span></div>
+        </div>
+      </div>
+    </div>
+    <!-- LIVE COST TICKER HUD -->
+    <div class="ticker" style="margin-top:34px" id="heroTicker">
+      <div class="tk" data-tk="price"><div class="lbl">Warm Price</div><div class="val" id="tkPrice">$0.00</div><div class="sub">to re-answer</div></div>
+      <div class="tk" data-tk="reuse"><div class="lbl">Reused</div><div class="val" id="tkReuse">24/24</div><div class="sub">derivations from memory</div></div>
+      <div class="tk" data-tk="save"><div class="lbl">Savings</div><div class="val" id="tkSave">100%</div><div class="sub">vs cold compute</div></div>
+      <div class="tk" data-tk="records"><div class="lbl">In Memory</div><div class="val" id="tkRec">24</div><div class="sub">content-addressed records</div></div>
+    </div>
+  </div>
+
+  <!-- PROBLEM -->
+  <div class="section">
+    <div class="sec-head up">
+      <div class="eyebrow">The problem</div>
+      <h2>Agents recompute everything, every time.</h2>
+      <p>Ask an agent the same question twice and it pays twice. There's no build cache for reasoning — no memory of what it already derived, no way to reuse an answer that hasn't changed. Every dossier is a cold start.</p>
+    </div>
+    <div class="three">
+      <div class="card feat up"><div class="n">01 / WASTE</div><h3>No reuse</h3><p>24 derivations recomputed from scratch on every run, even when nothing moved.</p></div>
+      <div class="card feat up" style="animation-delay:.08s"><div class="n">02 / COST</div><h3>Pay again</h3><p>Metered inference bills the same $0.48 for an answer the agent already knew.</p></div>
+      <div class="card feat up" style="animation-delay:.16s"><div class="n">03 / DRIFT</div><h3>No invalidation</h3><p>When one source changes, everything is redone — or nothing is, and the answer goes stale.</p></div>
+    </div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <div class="section">
+    <div class="sec-head up">
+      <div class="eyebrow">How it works</div>
+      <h2>Reasoning, treated like a build system.</h2>
+      <p>6 sources → 6 extractions → 15 metrics → 3 conclusions = 24 derivations. Each is content-addressed by a hash of its inputs. Same hash = reused, free. New hash = recomputed.</p>
+    </div>
+    <div class="three">
+      <div class="card feat up"><div class="n">DAG</div><h3>A dossier is a graph</h3><p>Sources feed extractions feed metrics feed conclusions — a dependency DAG, not a flat prompt.</p></div>
+      <div class="card feat up" style="animation-delay:.08s"><div class="n">CONE</div><h3>Only the cone re-derives</h3><p>Change a source and a mismatch auto-invalidates just its downstream cone. Verify-on-serve.</p></div>
+      <div class="card feat up" style="animation-delay:.16s"><div class="n">MACHINE</div><h3>Built for machines</h3><p>The customer is an agent. It calls a metered API and pays per answer over x402 on Base.</p></div>
+    </div>
+  </div>
+
+  <!-- MONEY SHOT -->
+  <div class="section">
+    <div class="sec-head up">
+      <div class="eyebrow">The money shot</div>
+      <h2>Edit one source. Only its cone re-derives.</h2>
+      <p>Edit the <b style="color:var(--acid)">token</b> source and rebuild — only the token checks light up. You pay ~$0.14 for its cone, not $0.48 for the world.</p>
+    </div>
+    <div class="moneyshot">
+      <div class="card cone-wrap up">
+        <div class="chip" style="margin-bottom:16px">24 derivations · content-addressed</div>
+        <div class="dag" id="dag"></div>
+        <button class="ghost-btn" id="editToken" style="margin-top:18px;width:100%">✎ Edit token source &amp; rebuild</button>
+      </div>
+      <div class="money-copy up" style="animation-delay:.1s">
+        <div class="ticker" style="margin-bottom:6px" id="moneyTicker">
+          <div class="tk" style="min-width:120px"><div class="lbl">Cost</div><div class="val" id="mPrice">$0.00</div><div class="sub" id="mPriceSub">warm re-answer</div></div>
+          <div class="tk" style="min-width:120px"><div class="lbl">Reused</div><div class="val" id="mReuse">24/24</div><div class="sub" id="mReuseSub">free from memory</div></div>
+        </div>
+        <div class="math">
+          <div class="line"><span>Cold run · 24 × $0.02</span><span class="old" id="mCold">$0.48</span></div>
+          <div class="line"><span id="mLabel">Warm re-answer · 0 recomputed</span><span class="new" id="mNew">$0.00</span></div>
+        </div>
+        <p style="color:var(--muted);font-size:14.5px" id="mExplain">Everything is reused. The dossier is served straight from memory — the same input hash means the same answer, for free.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- DELETION TEST -->
+  <div class="section">
+    <div class="sec-head up">
+      <div class="eyebrow">The gate moment</div>
+      <h2>The answers live in memory.</h2>
+      <p>Delete the memory and the whole dossier collapses — 24 records to 0, the database from 471 KB to 4 KB. Restore, and it comes back warm, instantly. Memory is load-bearing.</p>
+    </div>
+    <div class="card delete-stage up" id="delStage">
+      <div class="dstat">
+        <div class="b"><div class="num" id="dRecords">24</div><div class="cap">Records</div></div>
+        <div class="b"><div class="num" id="dSize">471<span style="font-size:20px">KB</span></div><div class="cap">Database</div></div>
+        <div class="b"><div class="num" id="dVerdict" style="font-size:30px;color:var(--good)">GOOD</div><div class="cap">Dossier</div></div>
+      </div>
+      <div class="dossier-bar" id="dBar"></div>
+      <div class="actrow" style="justify-content:center;display:flex;gap:12px;margin-top:24px;flex-wrap:wrap">
+        <button class="ghost-btn" id="delBtn" style="border-color:rgba(255,70,110,.4);color:var(--weak)">✕ Delete memory</button>
+        <button class="glow-btn" id="restoreBtn">↺ Restore (warm)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5 TIERS -->
+  <div class="section">
+    <div class="sec-head up">
+      <div class="eyebrow">Sibyl Memory · 5 tiers</div>
+      <h2>Five layers do the remembering.</h2>
+      <p>All load-bearing, none decorative. Content-addressed records, a multi-tenant commons, MCP + LangGraph surfaces.</p>
+    </div>
+    <div class="tiers">
+      <div class="card tier up"><div class="t">WORKING</div><p>Holds the live run cursor.</p></div>
+      <div class="card tier up" style="animation-delay:.06s"><div class="t">EPISODIC</div><p>Stores the 24 derivations that reuse hits.</p></div>
+      <div class="card tier up" style="animation-delay:.12s"><div class="t">SEMANTIC</div><p>The extracted facts.</p></div>
+      <div class="card tier up" style="animation-delay:.18s"><div class="t">PROCEDURAL</div><p>Pricing + invalidation doctrine the engine consults.</p></div>
+      <div class="card tier up" style="animation-delay:.24s"><div class="t">COLD</div><p>Raw sources + FTS5 keyword recall.</p></div>
+    </div>
+    <div class="card customer up">
+      <div class="big">Your agent is the <span>customer.</span></div>
+      <p style="color:var(--muted);flex:1;min-width:240px;font-size:15px">A human reads this site to watch it work. An agent calls the metered API and pays per answer with x402 on Base — three integration paths, five memory layers under the hood.</p>
+      <button class="glow-btn" data-goto="integrate">See integration →</button>
+    </div>
+  </div>
+
+  <!-- ON-CHAIN PROOF -->
+  <div class="section">
+    <div class="sec-head up">
+      <div class="eyebrow">On-chain proof · Base Sepolia</div>
+      <h2>The price computed is the price paid.</h2>
+      <p>Real gasless USDC settlements via x402 (EIP-3009). Four real transactions, verifiable on Basescan.</p>
+    </div>
+    <div class="tx-grid">
+      <a class="card tx up" href="https://sepolia.basescan.org/tx/0x10759f3c" target="_blank" rel="noopener" style="text-decoration:none"><span class="dot"></span><div><div class="h">0x10759f3c…</div><div class="s">x402 · EIP-3009 · settled</div></div></a>
+      <a class="card tx up" href="https://sepolia.basescan.org/tx/0x11ae4043" target="_blank" rel="noopener" style="text-decoration:none;animation-delay:.06s"><span class="dot"></span><div><div class="h">0x11ae4043…</div><div class="s">x402 · EIP-3009 · settled</div></div></a>
+      <a class="card tx up" href="https://sepolia.basescan.org/tx/0x5ed48622" target="_blank" rel="noopener" style="text-decoration:none;animation-delay:.12s"><span class="dot"></span><div><div class="h">0x5ed48622…</div><div class="s">x402 · EIP-3009 · settled</div></div></a>
+      <a class="card tx up" href="https://sepolia.basescan.org/tx/0x92606759" target="_blank" rel="noopener" style="text-decoration:none;animation-delay:.18s"><span class="dot"></span><div><div class="h">0x92606759…</div><div class="s">x402 · EIP-3009 · settled</div></div></a>
+    </div>
+    <div class="contract-line">Contract <b>0xc211C942946011859ca634F22400d80570ED12A5</b> · sepolia.basescan.org</div>
+  </div>
+
+  <!-- TOKEN NOD -->
+  <div class="section">
+    <div class="sec-head up">
+      <div class="eyebrow">Token</div>
+      <h2>Capturing the metered-memory economy.</h2>
+      <p>Rederive meters memory per answer over x402. Agents are the buyers — the token captures that economy. Chart &amp; buy coming soon.</p>
+    </div>
+    <div class="three">
+      <div class="card feat up"><div class="n">UTILITY</div><h3>Metered by memory</h3><p>Every answer is priced by derivations touched. Reuse is $0.00 — the token routes the flow.</p></div>
+      <div class="card feat up" style="animation-delay:.08s"><div class="n">DEMAND</div><h3>Agents pay per call</h3><p>The customer is a machine paying on Base. Demand scales with agent adoption, not hype.</p></div>
+      <div class="card feat up" style="animation-delay:.16s"><div class="n">SOON</div><h3>Chart &amp; buy</h3><p>Tokenomics still baking. See the <a href="#" data-goto="token" style="color:var(--lime)">token page</a> for the full thesis.</p></div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="cta-big">Watch cognition <span class="g">compile.</span></div>
+    <p style="color:var(--muted)">A build system for an agent's reasoning. Memory is load-bearing — proven live.</p>
+    <div class="cta-row" style="justify-content:center;margin-top:24px">
+      <button class="glow-btn" data-goto="console">Open the console</button>
+      <button class="ghost-btn" data-goto="integrate">Read the docs</button>
+    </div>
+    <div class="social">
+      <a href="https://rederive.xyz" target="_blank" rel="noopener">rederive.xyz</a>
+      <a href="#" data-goto="integrate">API · /answer</a>
+      <a href="https://sepolia.basescan.org/address/0xc211C942946011859ca634F22400d80570ED12A5" target="_blank" rel="noopener">Basescan</a>
+      <a href="https://x.com/rederive" target="_blank" rel="noopener">X / @rederive</a>
+    </div>
+    <p style="color:var(--dim);font-family:var(--mono);font-size:11px;margin-top:26px">Sibyl Memory · content-addressed · multi-tenant commons · MCP + LangGraph</p>
+  </footer>
+</main>
+</section>
+
+<!-- ==================== CONSOLE ==================== -->
+<section class="page" id="console">
+<main>
+  <div class="section" style="padding-top:44px">
+    <div class="sec-head up">
+      <div class="eyebrow">Console · guided walkthrough</div>
+      <h2>Watch it reason, reuse, and remember.</h2>
+    </div>
+    <!-- status bar -->
+    <div class="statusbar up">
+      <div class="sb"><div class="l">Project</div><div class="v">Uniswap</div></div>
+      <div class="sb"><div class="l">Verdict</div><div class="v" id="csVerdict" style="color:var(--good)">Good</div></div>
+      <div class="sb"><div class="l">Score</div><div class="v">78/100</div></div>
+      <div class="sb"><div class="l">Risk</div><div class="v" style="color:var(--fair)">Medium</div></div>
+      <div class="sb"><div class="l">In memory</div><div class="v" id="csMem">24/24</div></div>
+      <div class="sb"><div class="l">Cost</div><div class="v" id="csCost">$0.00</div></div>
+    </div>
+
+    <div class="console-grid">
+      <!-- 15-check grid -->
+      <div class="card" style="padding:22px" id="checkCard">
+        <div class="chip" style="margin-bottom:16px">15 checks + 1 verdict · live</div>
+        <div class="checkgrid" id="checkGrid"></div>
+      </div>
+      <!-- step panel -->
+      <div class="card step-panel up">
+        <div class="badge" id="stepBadge">STEP 1 / 5</div>
+        <h3 id="stepTitle">What the AI built</h3>
+        <p id="stepBody">Read 6 Uniswap sources — docs, code, token, team, community, audits — and produced 15 checks plus one verdict. This is the cold run: 24 derivations computed, $0.48.</p>
+        <div class="step-dots" id="stepDots"></div>
+        <div class="actrow">
+          <button class="glow-btn" id="stepAction">Ask again (free) →</button>
+          <button class="ghost-btn" id="stepPrev">← Back</button>
+        </div>
+        <div class="ticker" style="margin-top:20px;flex-direction:column">
+          <div class="tk"><div class="lbl">This step</div><div class="val" id="stepCost" style="font-size:24px">$0.48</div><div class="sub" id="stepReuse">0 / 24 reused · cold run</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+</section>
+
+<!-- ==================== INTEGRATE ==================== -->
+<section class="page" id="integrate">
+<main>
+  <div class="section" style="padding-top:44px">
+    <div class="sec-head up">
+      <div class="eyebrow">Integrate · agent &amp; dev docs</div>
+      <h2>Your agent is the customer.</h2>
+      <p>Three ways to plug Rederive into an agent. It calls the metered API and pays per answer with x402 on Base — $0.02 per derivation, reused derivations are $0.00.</p>
+    </div>
+
+    <div class="paths">
+      <!-- API -->
+      <div class="card path up">
+        <div class="head"><div class="num">1</div><div><h3>Paid API call</h3><div class="tag">x402 on Base · pay per call</div></div></div>
+        <pre><span class="kw">client</span> = <span class="fn">x402Client</span>()               <span class="c"># pays per call, on Base</span>
+r = <span class="kw">await</span> http.<span class="fn">post</span>(<span class="st">".../answer"</span>)   <span class="c"># x402 settles the quote</span>
+dossier = r.<span class="fn">json</span>()[<span class="st">"dossier"</span>]       <span class="c"># -> the verdict, as JSON</span></pre>
+      </div>
+      <!-- MCP -->
+      <div class="card path up" style="animation-delay:.08s">
+        <div class="head"><div class="num">2</div><div><h3>MCP tool · drop-in for Claude</h3><div class="tag">FastMCP server "rederive"</div></div></div>
+        <pre><span class="kw">@mcp.tool</span>()
+<span class="kw">def</span> <span class="fn">get_derivation</span>(node): ...   <span class="c"># get_derivation("s_verdict")</span>
+<span class="kw">@mcp.tool</span>()
+<span class="kw">def</span> <span class="fn">recall</span>(q, limit): ...       <span class="c"># keyword search the memory</span></pre>
+        <p style="color:var(--muted);font-size:14px;margin-top:14px">Point any MCP client at the server; the agent's model calls these tools directly, no glue code.</p>
+      </div>
+      <!-- LangGraph -->
+      <div class="card path up" style="animation-delay:.16s">
+        <div class="head"><div class="num">3</div><div><h3>LangGraph node</h3><div class="tag">memory node inside the agent's workflow</div></div></div>
+        <pre>graph = <span class="fn">build_langgraph</span>(engine)
+<span class="c"># Rederive becomes the memory node inside the agent's own workflow</span></pre>
+      </div>
+    </div>
+
+    <!-- pricing band -->
+    <div class="card pricing-band up" style="margin-top:22px">
+      <div class="p"><div class="big">$0.02</div><div class="lbl">per derivation</div></div>
+      <div class="p"><div class="big">$0.00</div><div class="lbl">reused · from memory</div></div>
+      <div class="p"><div class="big">$0.48</div><div class="lbl">cold run · 24 derivations</div></div>
+      <div class="p"><div class="big">x402</div><div class="lbl">metered on Base</div></div>
+    </div>
+
+    <div class="card path up" style="margin-top:22px">
+      <div class="chip" style="margin-bottom:14px">The quote is honest</div>
+      <p style="color:var(--muted);font-size:15px">Every call returns a metered quote before settlement — reused derivations bill $0.00, only new hashes bill $0.02. The price the product computes is the price actually paid, settled gaslessly via x402 (EIP-3009) on Base. Verify any settlement on <a href="https://sepolia.basescan.org/address/0xc211C942946011859ca634F22400d80570ED12A5" target="_blank" rel="noopener" style="color:var(--lime)">Basescan</a>.</p>
+    </div>
+  </div>
+</main>
+</section>
+
+<!-- ==================== TOKEN ==================== -->
+<section class="page" id="token">
+<main>
+  <div class="token-hero up">
+    <div class="eyebrow">$RDV · the metered-memory economy</div>
+    <h1>Own the <span class="g">reasoning cache.</span></h1>
+    <p>Rederive meters memory per answer over x402, and the buyers are AI agents. The token captures the value of an agent economy that pays for cognition — and only re-pays for what changed.</p>
+  </div>
+
+  <div class="section" style="padding-top:20px">
+    <div class="thesis-grid">
+      <div class="card t up"><div class="ic">01 · WHY</div><h3>Metered memory</h3><p>Every answer is priced by derivations touched. Reuse costs nothing; the token routes and captures the metered flow.</p></div>
+      <div class="card t up" style="animation-delay:.08s"><div class="ic">02 · WHO</div><h3>Agents are buyers</h3><p>The customer is a machine paying on Base per call. Demand tracks agent adoption, not narrative cycles.</p></div>
+      <div class="card t up" style="animation-delay:.16s"><div class="ic">03 · MOAT</div><h3>The commons</h3><p>A multi-tenant memory commons: the more agents derive, the more reuse hits are free — a compounding cache.</p></div>
+    </div>
+
+    <!-- chart -->
+    <div class="card chart-card up">
+      <span class="soon">COMING SOON</span>
+      <div class="chip" style="margin:0 auto 6px">Price chart</div>
+      <svg class="spark" viewBox="0 0 600 120" preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+          <linearGradient id="sg" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#6bff9e" stop-opacity=".5"/><stop offset="1" stop-color="#6bff9e" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <path d="M0,90 C60,80 100,60 160,66 C220,72 260,30 320,40 C380,50 420,18 480,26 C540,34 570,14 600,20 L600,120 L0,120 Z" fill="url(#sg)"/>
+        <path d="M0,90 C60,80 100,60 160,66 C220,72 260,30 320,40 C380,50 420,18 480,26 C540,34 570,14 600,20" fill="none" stroke="#c8ff3e" stroke-width="2.5" style="filter:drop-shadow(0 0 8px rgba(200,255,62,.6))"/>
+      </svg>
+      <p style="color:var(--muted);font-size:14px">Tokenomics &amp; contract not live yet — we won't fake a chart. What's real: the metered API, x402 settlements, and four on-chain transactions today.</p>
+      <div class="buy-row">
+        <button class="glow-btn" disabled>Buy $RDV · soon</button>
+        <a class="ghost-btn" style="text-decoration:none" href="https://sepolia.basescan.org/address/0xc211C942946011859ca634F22400d80570ED12A5" target="_blank" rel="noopener">View on-chain proof</a>
+      </div>
+    </div>
+
+    <!-- links -->
+    <div class="token-links">
+      <a href="https://rederive.xyz" target="_blank" rel="noopener"><div class="k">SITE</div><div class="v">rederive.xyz</div></a>
+      <a href="#" data-goto="integrate"><div class="k">API</div><div class="v">/answer · x402</div></a>
+      <a href="https://sepolia.basescan.org/address/0xc211C942946011859ca634F22400d80570ED12A5" target="_blank" rel="noopener"><div class="k">ON-CHAIN</div><div class="v">Basescan</div></a>
+      <a href="https://x.com/rederive" target="_blank" rel="noopener"><div class="k">SOCIAL</div><div class="v">X / @rederive</div></a>
+    </div>
+  </div>
+</main>
+</section>
+
+<script>
+/* ---------- page switching ---------- */
+const tabs=[...document.querySelectorAll('.tab')];
+const pages=[...document.querySelectorAll('.page')];
+function go(id){
+  tabs.forEach(t=>{const on=t.dataset.page===id;t.classList.toggle('on',on);t.setAttribute('aria-selected',on)});
+  pages.forEach(p=>p.classList.toggle('on',p.id===id));
+  window.scrollTo({top:0,behavior:'instant'});
+}
+tabs.forEach(t=>t.addEventListener('click',()=>go(t.dataset.page)));
+document.querySelectorAll('[data-goto]').forEach(el=>el.addEventListener('click',e=>{e.preventDefault();go(el.dataset.goto)}));
+
+/* ---------- landing DAG ---------- */
+const dag=document.getElementById('dag');
+const groups=['src','src','src','src','src','src']; // 6 sources first
+const nodes=[];
+// 6 sources
+for(let i=0;i<6;i++){nodes.push({t:'S'+(i+1),cls:'src'})}
+// 18 more derivations (extractions/metrics/conclusions) = 24 total
+for(let i=0;i<18;i++){nodes.push({t:'d'+i,cls:'reused'})}
+dag.innerHTML=nodes.map((n,i)=>`<div class="node ${n.cls}" data-i="${i}">${n.t}</div>`).join('');
+// token cone = source S3 (token) + 6 downstream = 7 nodes
+const tokenCone=[2,6,7,8,14,15,16]; // S3 + its cone (7 total)
+
+/* ---------- ticker helpers ---------- */
+function pulse(el){el.classList.remove('pulse');void el.offsetWidth;el.classList.add('pulse')}
+function setLandingTicker(price,reuse,save,rec){
+  document.getElementById('tkPrice').textContent=price;
+  document.getElementById('tkReuse').textContent=reuse;
+  document.getElementById('tkSave').textContent=save;
+  document.getElementById('tkRec').textContent=rec;
+  document.querySelectorAll('#heroTicker .tk').forEach(pulse);
+}
+
+/* ---------- money shot: edit token ---------- */
+let edited=false;
+document.getElementById('editToken').addEventListener('click',function(){
+  const cells=[...dag.querySelectorAll('.node')];
+  if(!edited){
+    tokenCone.forEach(i=>cells[i].classList.add('hot'));
+    // money copy
+    document.getElementById('mPrice').textContent='$0.14';
+    document.getElementById('mPriceSub').textContent='token cone';
+    document.getElementById('mReuse').textContent='17/24';
+    document.getElementById('mReuseSub').textContent='reused, free';
+    document.getElementById('mLabel').textContent='Token cone · 7 recomputed';
+    document.getElementById('mNew').textContent='$0.14';
+    document.getElementById('mExplain').textContent='Only the token source and its downstream cone re-derive — 7 recomputed at $0.02 each. The other 17 derivations are untouched and served free from memory.';
+    document.querySelectorAll('#moneyTicker .tk').forEach(pulse);
+    setLandingTicker('$0.14','17/24','71%','24');
+    this.textContent='↺ Reset to warm';
+    this.style.borderColor='var(--acid)';
+    edited=true;
+  }else{
+    tokenCone.forEach(i=>cells[i].classList.remove('hot'));
+    document.getElementById('mPrice').textContent='$0.00';
+    document.getElementById('mPriceSub').textContent='warm re-answer';
+    document.getElementById('mReuse').textContent='24/24';
+    document.getElementById('mReuseSub').textContent='free from memory';
+    document.getElementById('mLabel').textContent='Warm re-answer · 0 recomputed';
+    document.getElementById('mNew').textContent='$0.00';
+    document.getElementById('mExplain').textContent='Everything is reused. The dossier is served straight from memory — the same input hash means the same answer, for free.';
+    document.querySelectorAll('#moneyTicker .tk').forEach(pulse);
+    setLandingTicker('$0.00','24/24','100%','24');
+    this.textContent='✎ Edit token source & rebuild';
+    this.style.borderColor='';
+    edited=false;
+  }
+});
+
+/* ---------- deletion test ---------- */
+const stage=document.getElementById('delStage');
+document.getElementById('delBtn').addEventListener('click',()=>{
+  stage.classList.add('collapsed');
+  document.getElementById('dRecords').textContent='0';
+  document.getElementById('dSize').innerHTML='4<span style="font-size:20px">KB</span>';
+  document.getElementById('dVerdict').textContent='—';
+  document.getElementById('dVerdict').style.color='var(--weak)';
+  setLandingTicker('—','0/24','—','0');
+});
+document.getElementById('restoreBtn').addEventListener('click',()=>{
+  stage.classList.remove('collapsed');
+  document.getElementById('dRecords').textContent='24';
+  document.getElementById('dSize').innerHTML='471<span style="font-size:20px">KB</span>';
+  document.getElementById('dVerdict').textContent='GOOD';
+  document.getElementById('dVerdict').style.color='var(--good)';
+  setLandingTicker('$0.00','24/24','100%','24');
+});
+
+/* ---------- console: 15-check grid + 5 steps ---------- */
+const checks=[
+  {g:'Docs & API',items:[['Doc quality','good'],['Storage architecture','good'],['API surface','fair']]},
+  {g:'Code & team',items:[['Commit rate','good'],['Test coverage','fair'],['Bus factor','weak'],['Team track record','good']]},
+  {g:'Token',items:[['Supply risk','fair'],['Utility','good'],['Liquidity','good']]},
+  {g:'Community',items:[['Transparency','good'],['Sentiment','fair'],['Growth','good']]},
+  {g:'Security',items:[['Audit status','good'],['Security incidents','weak']]},
+];
+const cg=document.getElementById('checkGrid');
+let html='';
+const verdictWord={good:'Good',fair:'Fair',weak:'Weak'};
+checks.forEach(grp=>{
+  html+=`<div class="grp-label">${grp.g}</div>`;
+  grp.items.forEach(([name,v])=>{
+    html+=`<div class="chk ${v}" data-token="${grp.g==='Token'?1:0}"><div class="name">${name}</div><div class="verdict">${verdictWord[v]}</div></div>`;
+  });
+});
+cg.innerHTML=html;
+const chkEls=[...cg.querySelectorAll('.chk')];
+
+const steps=[
+  {t:'What the AI built',b:'Read 6 Uniswap sources — docs, code, token, team, community, audits — and produced 15 checks plus one verdict. Cold run: 24 derivations computed, $0.48.',
+   cost:'$0.48',reuse:'0 / 24 reused · cold run',mem:'24/24',csCost:'$0.48',action:'Ask again (free) →',lit:[]},
+  {t:'Asking again is free',b:'It already did the work and remembers it. Ask again → 0 recomputed, every derivation served from memory. $0.00.',
+   cost:'$0.00',reuse:'24 / 24 reused · warm',mem:'24/24',csCost:'$0.00',action:'Edit the token source →',lit:[]},
+  {t:'Change one thing, redo only that',b:'Edit the token source & rebuild → only the token checks light up. The cone re-derives; you pay ~$0.14, not $0.48. The other 17 are free.',
+   cost:'$0.14',reuse:'17 / 24 reused · cone',mem:'24/24',csCost:'$0.14',action:'Delete the memory →',lit:'token'},
+  {t:'The answers live in memory',b:'Delete the memory → the whole report vanishes: 24 records → 0, db 471 KB → 4 KB. Restore → warm, instantly. This is the gate moment.',
+   cost:'—',reuse:'0 / 24 · memory deleted',mem:'0/24',csCost:'—',action:'Restore & continue →',lit:'delete'},
+  {t:'How it remembers, and who uses it',b:'The customer is an AI agent — 3 integration paths (API · MCP · LangGraph), paying per answer with x402 on Base. Under the hood, 5 memory layers do the remembering.',
+   cost:'$0.00',reuse:'24 / 24 reused · warm',mem:'24/24',csCost:'$0.00',action:'See integration →',lit:[]},
+];
+let cs=0;
+const dots=document.getElementById('stepDots');
+dots.innerHTML=steps.map((s,i)=>`<span class="d${i===0?' on':''}" data-s="${i}"></span>`).join('');
+function renderStep(){
+  const s=steps[cs];
+  document.getElementById('stepBadge').textContent=`STEP ${cs+1} / 5`;
+  document.getElementById('stepTitle').textContent=s.t;
+  document.getElementById('stepBody').textContent=s.b;
+  document.getElementById('stepCost').textContent=s.cost;
+  document.getElementById('stepReuse').textContent=s.reuse;
+  document.getElementById('csMem').textContent=s.mem;
+  document.getElementById('csCost').textContent=s.csCost;
+  document.getElementById('stepAction').textContent=s.action;
+  pulse(document.querySelector('#console .step-panel .tk'));
+  [...dots.children].forEach((d,i)=>d.classList.toggle('on',i===cs));
+  // grid reactions
+  chkEls.forEach(el=>{el.classList.remove('lit');el.style.opacity='';});
+  if(s.lit==='token'){chkEls.forEach(el=>{if(el.dataset.token==='1')el.classList.add('lit')})}
+  if(s.lit==='delete'){chkEls.forEach(el=>el.style.opacity='.15')}
+  document.getElementById('csVerdict').textContent = s.lit==='delete'?'—':'Good';
+  document.getElementById('csVerdict').style.color = s.lit==='delete'?'var(--weak)':'var(--good)';
+}
+document.getElementById('stepAction').addEventListener('click',()=>{
+  if(cs<4){cs++;renderStep()} else {go('integrate')}
+});
+document.getElementById('stepPrev').addEventListener('click',()=>{if(cs>0){cs--;renderStep()}});
+[...dots.children].forEach(d=>d.addEventListener('click',()=>{cs=+d.dataset.s;renderStep()}));
+
+/* ---------- live hero warm-price flicker (tradable feel) ---------- */
+const warmEl=document.getElementById('heroWarm');
+setInterval(()=>{
+  if(document.getElementById('landing').classList.contains('on')){
+    warmEl.style.textShadow='0 0 14px rgba(107,255,158,.9)';
+    setTimeout(()=>warmEl.style.textShadow='',260);
+  }
+},2600);
+
+/* ---------- parallax depth on grid floor ---------- */
+const floor=document.querySelector('.grid-floor');
+let ticking=false;
+window.addEventListener('scroll',()=>{
+  if(!ticking){requestAnimationFrame(()=>{
+    const y=window.scrollY*0.05;
+    floor.style.transform=`perspective(560px) rotateX(66deg) translateY(${y}px)`;
+    ticking=false;
+  });ticking=true;}
+},{passive:true});
+</script>
+</body>
+</html>

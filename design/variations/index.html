@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rederive — 5 Redesign Directions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0c0c0e; --panel:#151518; --panel-2:#1c1c20; --line:#2a2a30;
+    --ink:#eceae4; --muted:#9a968d; --accent:#f5a623;
+    --mono:"JetBrains Mono",ui-monospace,monospace;
+    --sans:"Inter Tight",system-ui,sans-serif;
+    --serif:"Fraunces",serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6;
+    background-image:radial-gradient(1200px 600px at 70% -10%,rgba(245,166,35,.06),transparent 60%);}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1180px;margin:0 auto;padding:56px clamp(20px,5vw,44px) 80px}
+  header{margin-bottom:44px}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+  h1{font-family:var(--serif);font-weight:600;font-size:clamp(34px,5.4vw,56px);line-height:1.02;letter-spacing:-.02em}
+  h1 em{font-style:italic;color:var(--accent)}
+  .lede{color:var(--muted);font-size:17px;max-width:60ch;margin-top:16px}
+  .meta{margin-top:20px;display:flex;gap:22px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .meta b{color:var(--ink);font-weight:500}
+  .grid{margin-top:40px;display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:22px}
+  .card{position:relative;display:block;background:var(--panel);border:1px solid var(--line);border-radius:16px;
+    overflow:hidden;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+  .card:hover{transform:translateY(-4px);border-color:var(--line-2,#3a3a42);box-shadow:0 24px 60px rgba(0,0,0,.5)}
+  .swatch{height:112px;position:relative;display:flex;align-items:flex-end;padding:14px}
+  .swatch .n{font-family:var(--mono);font-size:12px;color:rgba(255,255,255,.85);letter-spacing:.1em;
+    background:rgba(0,0,0,.35);padding:3px 9px;border-radius:999px;backdrop-filter:blur(6px)}
+  .s1{background:radial-gradient(120% 140% at 15% 10%,#ff5e1a,transparent 55%),linear-gradient(120deg,#0a0a0b,#231708,#f5a623)}
+  .s2{background:conic-gradient(from 200deg at 60% 40%,#3ad6ff,#b06bff,#c8ff5e,#3ad6ff),linear-gradient(#0b0b14,#0b0b14)}
+  .s3{background:linear-gradient(120deg,#14130f 20%,#3a2f16 60%,#d8b46a)}
+  .s4{background:radial-gradient(120% 140% at 80% 10%,#6bff9e,transparent 55%),linear-gradient(120deg,#050e0d,#0b1a17,#12c98a)}
+  .s5{background:linear-gradient(120deg,#0b0e10,#10151a 55%,#35e0ff),repeating-linear-gradient(90deg,rgba(53,224,255,.09) 0 1px,transparent 1px 22px)}
+  .body{padding:18px 18px 20px}
+  .body h3{font-family:var(--serif);font-weight:600;font-size:21px;letter-spacing:-.01em}
+  .body h3 span{color:var(--muted);font-family:var(--mono);font-size:12px;font-weight:400;letter-spacing:.08em;display:block;margin-top:2px}
+  .body p{color:var(--muted);font-size:14px;margin-top:10px}
+  .tags{margin-top:14px;display:flex;flex-wrap:wrap;gap:6px}
+  .tag{font-family:var(--mono);font-size:10.5px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:3px 8px}
+  .open{margin-top:16px;display:inline-flex;align-items:center;gap:7px;color:var(--accent);font-size:13px;font-weight:600;font-family:var(--mono)}
+  .note{margin-top:46px;padding:18px 20px;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--muted);font-size:13.5px;max-width:80ch}
+  .note b{color:var(--ink)}
+  footer{margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Rederive · frontend-design · 5 directions</div>
+    <h1>Five ways to make cognition <em>compile</em>.</h1>
+    <p class="lede">Same Option-C architecture and the same real data in every one — Landing, Console, Integrate, Token. Each direction commits to its own palette, type, and motion. Open each, flip through all four pages via the sticky tab-nav, then pick.</p>
+    <div class="meta">
+      <span><b>Scope</b> · Landing + Console + /integrate + /token</span>
+      <span><b>Money-shots</b> · invalidation cone · deletion test · 5 tiers · 4 on-chain tx</span>
+      <span><b>Next</b> · /design to pick → /ui-revamp to polish</span>
+    </div>
+  </header>
+
+  <div class="grid">
+    <a class="card" href="direction-1-obsidian-foundry.html">
+      <div class="swatch s1"><span class="n">01 · MOLTEN AMBER</span></div>
+      <div class="body">
+        <h3>Obsidian Foundry<span>reasoning as molten metal, forged & cached</span></h3>
+        <p>Cinematic obsidian dark, molten copper→amber→gold. The cone heats white-hot down only the edited branch; the reused 17 stay cold. Heaviest, most "token-launch" of the dark takes — keeps the amber heritage.</p>
+        <div class="tags"><span class="tag">Clash Display</span><span class="tag">Satoshi</span><span class="tag">heat glow</span><span class="tag">grain</span></div>
+        <span class="open">Open all 4 pages →</span>
+      </div>
+    </a>
+
+    <a class="card" href="direction-2-prism-terminal.html">
+      <div class="swatch s2"><span class="n">02 · IRIDESCENT</span></div>
+      <div class="body">
+        <h3>Prism Terminal<span>memory as a refractive crystal</span></h3>
+        <p>Deep ink-violet glass with a moving cyan→magenta→lime spectrum. Each content-addressed derivation is a glass chip whose fingerprint refracts a unique spectral signature — same hash, same refraction. The most futuristic direction.</p>
+        <div class="tags"><span class="tag">Bricolage Grotesque</span><span class="tag">Inter Tight</span><span class="tag">glassmorphism</span><span class="tag">chromatic</span></div>
+        <span class="open">Open all 4 pages →</span>
+      </div>
+    </a>
+
+    <a class="card" href="direction-3-editorial-vault.html">
+      <div class="swatch s3"><span class="n">03 · CHAMPAGNE</span></div>
+      <div class="body">
+        <h3>Editorial Vault<span>a private-bank intelligence brief</span></h3>
+        <p>Warm graphite, champagne gold, cream ink. Big Fraunces serif, hairline rules, numbered sections, the 15 checks set like a financial statement. Restraint over glow — the calm, expensive, refined counterpoint.</p>
+        <div class="tags"><span class="tag">Fraunces</span><span class="tag">Newsreader</span><span class="tag">gold foil</span><span class="tag">editorial</span></div>
+        <span class="open">Open all 4 pages →</span>
+      </div>
+    </a>
+
+    <a class="card" href="direction-4-neon-depth.html">
+      <div class="swatch s4"><span class="n">04 · EMERALD NEON</span></div>
+      <div class="body">
+        <h3>Neon Depth<span>a DeFi trading terminal for reasoning</span></h3>
+        <p>Deep teal-black, emerald→electric-lime, neon grid floor, parallax depth. A live "cost ticker" HUD reacts across the money-shot ($0.00 → $0.14) and the deletion test. The most kinetic, most ape-worthy.</p>
+        <div class="tags"><span class="tag">Chillax</span><span class="tag">General Sans</span><span class="tag">neon grid</span><span class="tag">live ticker</span></div>
+        <span class="open">Open all 4 pages →</span>
+      </div>
+    </a>
+
+    <a class="card" href="direction-5-blueprint-mono.html">
+      <div class="swatch s5"><span class="n">05 · CYAN BLUEPRINT</span></div>
+      <div class="body">
+        <h3>Blueprint Mono<span>the build system, drawn as a schematic</span></h3>
+        <p>Carbon-black with glowing cyan blueprint linework and dimension annotations; amber kept only for the "hot / recomputing" state. Takes "incremental compilation" literally — the DAG as an engineering drawing. Precise, technical, mono-forward.</p>
+        <div class="tags"><span class="tag">Martian Mono</span><span class="tag">Hanken Grotesk</span><span class="tag">vector draw-in</span><span class="tag">cold cyan / hot amber</span></div>
+        <span class="open">Open all 4 pages →</span>
+      </div>
+    </a>
+  </div>
+
+  <div class="note">
+    <b>How to review:</b> open each card, use its sticky top tab-nav to walk Landing → Console → Integrate → Token, and try the interactions (edit a source to watch the cone; run the deletion test). Every direction carries the same load-bearing proofs — the invalidation cone, the deletion test, the five Sibyl tiers, and the four real Base Sepolia transactions. When you've picked, we run <b>/design</b> to lock it and <b>/ui-revamp</b> to bring it to production polish. <b>/lab/*</b> stays in the repo until then (its per-card fingerprint proof is worth mining for the console).
+  </div>
+
+  <footer>rederive.xyz · Sibyl Memory Hackathon · directions generated for review</footer>
+</div>
+</body>
+</html>

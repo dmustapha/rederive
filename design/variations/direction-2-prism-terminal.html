@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Rederive — Prism Terminal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=Inter+Tight:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --ink:#0b0b14; --ink2:#0e0e1a; --panel:#14141f; --panel2:#191926;
+  --edge:rgba(255,255,255,.08); --edge2:rgba(255,255,255,.14);
+  --text:#e8e8f4; --muted:#a1a1c0; --dim:#6d6d8f;
+  --cyan:#3ad6ff; --magenta:#b06bff; --lime:#c8ff5e;
+  --good:#9dff9a; --fair:#ffd166; --weak:#ff5d8f;
+  --spectrum:linear-gradient(90deg,#3ad6ff 0%,#b06bff 50%,#c8ff5e 100%);
+  --spectrum-conic:conic-gradient(from 210deg,#3ad6ff,#b06bff,#c8ff5e,#3ad6ff);
+  --radius:16px; --font-d:"Bricolage Grotesque",sans-serif;
+  --font-b:"Inter Tight",sans-serif; --font-m:"IBM Plex Mono",monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:var(--font-b); color:var(--text); background:var(--ink);
+  -webkit-font-smoothing:antialiased; overflow-x:hidden; line-height:1.5;
+}
+body::before{
+  content:""; position:fixed; inset:0; z-index:0; pointer-events:none;
+  background:
+    radial-gradient(60vw 50vh at 15% 0%, rgba(58,214,255,.10), transparent 60%),
+    radial-gradient(55vw 45vh at 90% 10%, rgba(176,107,255,.12), transparent 60%),
+    radial-gradient(50vw 50vh at 60% 100%, rgba(200,255,94,.06), transparent 55%);
+}
+.grain{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.5;
+  background-image:radial-gradient(rgba(255,255,255,.02) 1px,transparent 1px);
+  background-size:3px 3px;}
+a{color:inherit;text-decoration:none}
+h1,h2,h3,h4{font-family:var(--font-d);letter-spacing:-.02em;line-height:1.05}
+::selection{background:rgba(176,107,255,.35);color:#fff}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:3px;border-radius:6px}
+.mono{font-family:var(--font-m)}
+
+/* ---- NAV ---- */
+.nav{
+  position:sticky; top:0; z-index:50; display:flex; align-items:center; gap:24px;
+  padding:14px clamp(16px,4vw,44px);
+  background:rgba(11,11,20,.62); backdrop-filter:blur(18px) saturate(1.4);
+  border-bottom:1px solid var(--edge);
+}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--font-d);font-weight:800;
+  font-size:19px;letter-spacing:-.03em}
+.brand .re{background:var(--spectrum);-webkit-background-clip:text;background-clip:text;color:transparent}
+.tree{width:22px;height:22px;flex:none}
+.tabs{display:flex;gap:4px;margin-left:auto;background:rgba(255,255,255,.03);
+  border:1px solid var(--edge);border-radius:999px;padding:4px}
+.tab{font-family:var(--font-m);font-size:12.5px;letter-spacing:.02em;color:var(--muted);
+  padding:8px 15px;border-radius:999px;cursor:pointer;border:none;background:none;
+  transition:color .18s,background .18s;position:relative}
+.tab:hover{color:var(--text)}
+.tab.active{color:#0b0b14;font-weight:600;
+  background:var(--spectrum);box-shadow:0 0 22px rgba(176,107,255,.4)}
+.nav-cta{font-family:var(--font-m);font-size:12px;padding:9px 16px;border-radius:999px;
+  border:1px solid var(--edge2);color:var(--text);transition:.18s;white-space:nowrap}
+.nav-cta:hover{border-color:var(--cyan);box-shadow:0 0 20px rgba(58,214,255,.3)}
+
+/* ---- PAGE SYSTEM ---- */
+.page{display:none;position:relative;z-index:1}
+.page.active{display:block;animation:pageIn .5s cubic-bezier(.2,.7,.2,1)}
+@keyframes pageIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.wrap{max-width:1180px;margin:0 auto;padding:0 clamp(16px,4vw,44px)}
+section{padding:clamp(56px,8vw,104px) 0;position:relative}
+.eyebrow{font-family:var(--font-m);font-size:11.5px;letter-spacing:.28em;text-transform:uppercase;
+  color:var(--cyan);margin-bottom:18px;display:inline-flex;align-items:center;gap:10px}
+.eyebrow::before{content:"";width:24px;height:1px;background:var(--spectrum)}
+
+/* ---- GLASS ---- */
+.glass{
+  position:relative;background:linear-gradient(160deg,rgba(25,25,38,.72),rgba(14,14,26,.55));
+  border:1px solid var(--edge);border-radius:var(--radius);
+  backdrop-filter:blur(14px) saturate(1.3);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 20px 50px -30px rgba(0,0,0,.9);
+  overflow:hidden;
+}
+.glass::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;
+  background:var(--spectrum);opacity:.0;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;transition:opacity .3s;pointer-events:none}
+.glass:hover::before{opacity:.5}
+.sheen{position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.06) 48%,rgba(58,214,255,.05) 52%,transparent 70%);
+  background-size:280% 100%;animation:sheen 7s linear infinite}
+@keyframes sheen{from{background-position:180% 0}to{background-position:-120% 0}}
+
+/* ---- HERO ---- */
+.hero{padding-top:clamp(48px,7vw,88px);min-height:88vh;display:flex;align-items:center}
+.hero-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:48px;align-items:center;width:100%}
+h1.hero-title{font-size:clamp(40px,6.6vw,78px);font-weight:800;letter-spacing:-.035em}
+.chroma{position:relative;color:var(--text)}
+.chroma::before,.chroma::after{content:attr(data-t);position:absolute;left:0;top:0;pointer-events:none}
+.chroma::before{color:var(--cyan);transform:translate(-2px,1px);opacity:.5;mix-blend-mode:screen}
+.chroma::after{color:var(--magenta);transform:translate(2px,-1px);opacity:.5;mix-blend-mode:screen}
+.grad-text{background:var(--spectrum);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p.lede{color:var(--muted);font-size:clamp(16px,1.5vw,19px);margin:24px 0 30px;max-width:44ch}
+.hero-actions{display:flex;gap:14px;flex-wrap:wrap}
+.btn{font-family:var(--font-m);font-size:13px;padding:13px 22px;border-radius:12px;cursor:pointer;
+  border:1px solid var(--edge2);background:rgba(255,255,255,.03);color:var(--text);transition:.2s;display:inline-flex;gap:9px;align-items:center}
+.btn:hover{transform:translateY(-2px)}
+.btn.primary{background:var(--spectrum);color:#0b0b14;font-weight:600;border:none;
+  box-shadow:0 10px 34px -12px rgba(176,107,255,.7)}
+.btn.primary:hover{box-shadow:0 16px 44px -12px rgba(58,214,255,.7)}
+.heritage{margin-top:26px;font-family:var(--font-m);font-size:12px;color:var(--dim);letter-spacing:.02em}
+
+/* hero prism card */
+.prism-card{padding:26px}
+.warm-stat{display:flex;align-items:baseline;gap:14px;margin-bottom:20px}
+.warm-price{font-family:var(--font-d);font-weight:800;font-size:clamp(44px,6vw,64px);
+  background:linear-gradient(120deg,#9dff9a,#c8ff5e);-webkit-background-clip:text;background-clip:text;color:transparent}
+.warm-label{font-family:var(--font-m);font-size:11.5px;color:var(--muted);line-height:1.4;letter-spacing:.02em}
+.prism-viz{height:190px;border-radius:12px;position:relative;overflow:hidden;
+  background:radial-gradient(120% 100% at 10% 50%,rgba(58,214,255,.10),transparent 60%),#0a0a12;
+  border:1px solid var(--edge)}
+.beam{position:absolute;left:0;top:50%;height:2px;width:42%;transform:translateY(-50%);
+  background:linear-gradient(90deg,transparent,#fff);filter:blur(.3px)}
+.facet-tri{position:absolute;left:42%;top:50%;transform:translate(-50%,-50%) rotate(0deg);
+  width:0;height:0;border-left:26px solid transparent;border-right:26px solid transparent;
+  border-bottom:52px solid rgba(255,255,255,.14);filter:drop-shadow(0 0 14px rgba(176,107,255,.5));
+  animation:spin 14s linear infinite}
+@keyframes spin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+.ray{position:absolute;left:42%;top:50%;height:2px;transform-origin:left center;border-radius:2px;
+  animation:rayGrow 1.4s cubic-bezier(.2,.8,.2,1) forwards}
+@keyframes rayGrow{from{width:0;opacity:0}to{width:52%;opacity:.85}}
+
+/* ---- generic layout helpers ---- */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+.card{padding:26px}
+.card h3{font-size:20px;margin-bottom:10px}
+.card p{color:var(--muted);font-size:14.5px}
+.kicker{font-family:var(--font-m);font-size:11px;color:var(--cyan);letter-spacing:.16em;text-transform:uppercase;margin-bottom:14px}
+h2.sec-title{font-size:clamp(28px,4vw,46px);font-weight:700;margin-bottom:14px;letter-spacing:-.03em}
+.sec-sub{color:var(--muted);font-size:16px;max-width:60ch;margin-bottom:40px}
+
+/* ---- MONEY SHOT / CONE ---- */
+.cone-wrap{display:grid;grid-template-columns:1.25fr .75fr;gap:26px;align-items:stretch}
+.cone-stage{padding:24px;min-height:380px}
+.dag{position:relative;width:100%;height:340px}
+.node{position:absolute;transform:translate(-50%,-50%);border-radius:10px;padding:7px 11px;
+  font-family:var(--font-m);font-size:10.5px;white-space:nowrap;border:1px solid var(--edge2);
+  background:linear-gradient(150deg,rgba(255,255,255,.07),rgba(255,255,255,.02));
+  color:var(--muted);transition:.5s;backdrop-filter:blur(6px);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+.node.src{color:var(--text)}
+.node.recompute{color:#0b0b14;font-weight:600;border:none;
+  background:var(--spectrum);background-size:200% 100%;
+  box-shadow:0 0 22px rgba(176,107,255,.55);animation:refract 2.2s linear infinite}
+@keyframes refract{to{background-position:200% 0}}
+svg.edges{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+svg.edges line{stroke:rgba(255,255,255,.13);stroke-width:1.2;transition:.5s}
+svg.edges line.hot{stroke:url(#spec);stroke-width:2;filter:drop-shadow(0 0 6px rgba(176,107,255,.6))}
+.money-panel{padding:26px;display:flex;flex-direction:column;gap:18px}
+.price-row{display:flex;justify-content:space-between;align-items:baseline;
+  padding:14px 0;border-bottom:1px solid var(--edge)}
+.price-row:last-of-type{border:none}
+.price-row .lbl{font-size:13.5px;color:var(--muted)}
+.price-row .val{font-family:var(--font-d);font-weight:700;font-size:26px}
+.val.free{color:var(--good)}.val.cold{color:var(--muted)}.val.warm{color:var(--cyan)}
+.money-btn-row{display:flex;gap:10px;flex-wrap:wrap}
+
+/* fingerprint chips */
+.chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;margin-top:10px}
+.chip{padding:14px;border-radius:12px;position:relative;overflow:hidden;
+  background:linear-gradient(150deg,rgba(255,255,255,.05),rgba(255,255,255,.015));
+  border:1px solid var(--edge);transition:.3s;cursor:default}
+.chip:hover{transform:translateY(-3px) rotate(-.4deg)}
+.chip .facet{height:34px;border-radius:8px;margin-bottom:10px;position:relative;overflow:hidden}
+.chip .facet::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(110deg,transparent 40%,rgba(255,255,255,.35) 50%,transparent 60%);
+  background-size:250% 100%;animation:sheen 5s linear infinite}
+.chip .hash{font-family:var(--font-m);font-size:11px;color:var(--muted)}
+.chip .tag{font-family:var(--font-m);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;
+  margin-top:6px;display:inline-block}
+.tag.reused{color:var(--cyan)}.tag.new{color:var(--lime)}
+
+/* ---- DELETION TEST ---- */
+.del-stage{padding:30px;min-height:260px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:22px;text-align:center}
+.del-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:6px;width:100%;max-width:520px}
+.del-cell{aspect-ratio:1;border-radius:5px;background:var(--spectrum);background-size:400% 100%;
+  border:1px solid rgba(255,255,255,.15);transition:transform .5s,opacity .5s;box-shadow:0 0 10px rgba(176,107,255,.3)}
+.del-cell.gone{opacity:0;transform:scale(.2) translateY(24px)}
+.del-stat{font-family:var(--font-m);font-size:13px;color:var(--muted)}
+.del-stat b{color:var(--text)}
+.del-num{font-family:var(--font-d);font-weight:800;font-size:clamp(30px,4vw,44px);transition:.4s}
+
+/* ---- TIERS ---- */
+.tiers{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+.tier{padding:20px 16px;border-radius:14px;position:relative;overflow:hidden;
+  background:linear-gradient(165deg,rgba(255,255,255,.05),rgba(255,255,255,.01));
+  border:1px solid var(--edge);transition:.3s}
+.tier:hover{transform:translateY(-4px);border-color:var(--edge2)}
+.tier .bar{height:3px;border-radius:3px;margin-bottom:14px;background:var(--spectrum)}
+.tier h4{font-family:var(--font-m);font-size:12px;letter-spacing:.1em;color:var(--cyan);margin-bottom:8px}
+.tier p{font-size:12.5px;color:var(--muted);line-height:1.5}
+
+/* ---- ONCHAIN ---- */
+.tx-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:20px}
+.tx{padding:16px 18px;border-radius:12px;display:flex;align-items:center;gap:14px;
+  background:linear-gradient(150deg,rgba(255,255,255,.05),rgba(255,255,255,.015));
+  border:1px solid var(--edge);transition:.25s}
+.tx:hover{border-color:var(--cyan);box-shadow:0 0 24px -8px rgba(58,214,255,.5)}
+.tx .dot{width:9px;height:9px;border-radius:50%;background:var(--good);box-shadow:0 0 10px var(--good);flex:none}
+.tx .h{font-family:var(--font-m);font-size:13.5px;color:var(--text)}
+.tx .s{font-family:var(--font-m);font-size:10.5px;color:var(--dim)}
+.tx .go{margin-left:auto;font-family:var(--font-m);font-size:11px;color:var(--cyan)}
+.contract-line{margin-top:18px;font-family:var(--font-m);font-size:12px;color:var(--muted);
+  padding:14px 16px;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid var(--edge);
+  display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.contract-line b{color:var(--lime)}
+
+/* ---- CONSOLE ---- */
+.statusbar{display:flex;flex-wrap:wrap;gap:10px;padding:14px 18px;margin-bottom:22px}
+.stat-pill{font-family:var(--font-m);font-size:12px;padding:6px 12px;border-radius:999px;
+  background:rgba(255,255,255,.04);border:1px solid var(--edge);color:var(--muted)}
+.stat-pill b{color:var(--text)}
+.stat-pill.verdict b{color:var(--good)}
+.console-body{display:grid;grid-template-columns:1.35fr .65fr;gap:22px}
+.check-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.check{padding:11px 12px;border-radius:10px;border:1px solid var(--edge);
+  background:linear-gradient(150deg,rgba(255,255,255,.04),rgba(255,255,255,.01));transition:.4s}
+.check .cn{font-size:12px;color:var(--muted);margin-bottom:6px}
+.check .cv{font-family:var(--font-m);font-size:11px;font-weight:600;display:flex;align-items:center;gap:6px}
+.check .cv::before{content:"";width:7px;height:7px;border-radius:50%}
+.cv.good{color:var(--good)}.cv.good::before{background:var(--good);box-shadow:0 0 8px var(--good)}
+.cv.fair{color:var(--fair)}.cv.fair::before{background:var(--fair);box-shadow:0 0 8px var(--fair)}
+.cv.weak{color:var(--weak)}.cv.weak::before{background:var(--weak);box-shadow:0 0 8px var(--weak)}
+.check.hot{border:none;background:var(--spectrum);box-shadow:0 0 20px rgba(176,107,255,.5);animation:refract 2.2s linear infinite;background-size:200% 100%}
+.check.hot .cn,.check.hot .cv{color:#0b0b14;font-weight:700}
+.check.hot .cv::before{background:#0b0b14}
+.group-label{grid-column:1/-1;font-family:var(--font-m);font-size:10px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--dim);margin-top:8px}
+.steps{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
+.step{padding:12px 14px;border-radius:10px;border:1px solid var(--edge);cursor:pointer;transition:.2s;
+  background:rgba(255,255,255,.02)}
+.step:hover{border-color:var(--edge2)}
+.step.active{border-color:transparent;background:linear-gradient(150deg,rgba(58,214,255,.14),rgba(176,107,255,.1))}
+.step .sn{font-family:var(--font-m);font-size:10px;color:var(--cyan);letter-spacing:.1em}
+.step .st{font-size:13.5px;margin-top:4px;font-weight:600}
+.narration{padding:22px;min-height:210px}
+.narration h3{font-size:20px;margin-bottom:12px}
+.narration p{color:var(--muted);font-size:14.5px;margin-bottom:16px}
+.narration .price-tag{font-family:var(--font-d);font-weight:800;font-size:34px;margin-bottom:16px}
+
+/* ---- INTEGRATE ---- */
+.pathrow{display:grid;grid-template-columns:1fr;gap:20px}
+.path{padding:26px}
+.path-head{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.path-num{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;
+  font-family:var(--font-d);font-weight:800;color:#0b0b14;background:var(--spectrum);flex:none}
+.path h3{font-size:21px}
+.path .desc{color:var(--muted);font-size:14px;margin-bottom:16px}
+pre{font-family:var(--font-m);font-size:12.5px;line-height:1.7;padding:18px;border-radius:12px;
+  background:#08080f;border:1px solid var(--edge);overflow-x:auto;color:#cdd0e6}
+pre .c{color:var(--dim)}pre .k{color:var(--magenta)}pre .s{color:var(--lime)}pre .f{color:var(--cyan)}
+.price-model{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:8px}
+.pm{padding:20px;border-radius:12px;text-align:center;
+  background:linear-gradient(160deg,rgba(255,255,255,.05),rgba(255,255,255,.01));border:1px solid var(--edge)}
+.pm .big{font-family:var(--font-d);font-weight:800;font-size:30px}
+.pm .lab{font-family:var(--font-m);font-size:11px;color:var(--muted);margin-top:6px}
+
+/* ---- TOKEN ---- */
+.token-hero{padding:40px;text-align:center;position:relative}
+.token-hero h2{font-size:clamp(32px,5vw,56px)}
+.soon-chart{height:220px;border-radius:14px;margin-top:26px;position:relative;overflow:hidden;
+  background:radial-gradient(120% 140% at 50% 120%,rgba(176,107,255,.16),transparent 60%),#0a0a12;
+  border:1px solid var(--edge);display:grid;place-items:center}
+.soon-badge{font-family:var(--font-m);font-size:12px;letter-spacing:.2em;text-transform:uppercase;
+  padding:9px 18px;border-radius:999px;border:1px solid var(--edge2);color:var(--muted);
+  background:rgba(11,11,20,.5);z-index:2}
+.spark{position:absolute;inset:0;opacity:.55}
+.social-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:24px}
+.social{padding:18px;border-radius:12px;text-align:center;border:1px solid var(--edge);transition:.25s;
+  background:linear-gradient(160deg,rgba(255,255,255,.05),rgba(255,255,255,.01))}
+.social:hover{border-color:var(--magenta);transform:translateY(-3px)}
+.social .sl{font-family:var(--font-m);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.social .sv{font-family:var(--font-m);font-size:13px;color:var(--cyan);margin-top:6px}
+
+/* ---- FOOTER ---- */
+.footer{border-top:1px solid var(--edge);padding:44px 0 60px;text-align:center}
+.footer .big-cta{font-family:var(--font-d);font-weight:800;font-size:clamp(26px,4vw,44px);margin-bottom:22px}
+.foot-links{display:flex;gap:22px;justify-content:center;flex-wrap:wrap;font-family:var(--font-m);font-size:12px;color:var(--muted)}
+.foot-note{margin-top:26px;font-family:var(--font-m);font-size:11px;color:var(--dim)}
+
+/* reveal */
+.reveal{opacity:0;transform:translateY(22px);transition:opacity .7s,transform .7s}
+.reveal.in{opacity:1;transform:none}
+
+@media(max-width:900px){
+  .hero-grid,.cone-wrap,.console-body{grid-template-columns:1fr}
+  .grid3,.tiers,.price-model,.social-row,.check-grid{grid-template-columns:1fr 1fr}
+  .tx-grid{grid-template-columns:1fr}
+  .tabs{order:3;margin-left:0;width:100%;justify-content:space-between}
+  .nav{flex-wrap:wrap}.nav-cta{display:none}
+  .dag{height:300px}
+}
+@media(max-width:560px){
+  .grid2,.grid3,.tiers,.price-model,.social-row,.check-grid{grid-template-columns:1fr}
+  .del-grid{grid-template-columns:repeat(8,1fr)}
+}
+@media(prefers-reduced-motion:reduce){
+  *{animation:none!important;transition-duration:.01ms!important}
+  .reveal{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+<div class="grain"></div>
+
+<!-- ============ NAV ============ -->
+<nav class="nav">
+  <div class="brand">
+    <svg class="tree" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <defs><linearGradient id="tg" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#3ad6ff"/><stop offset=".5" stop-color="#b06bff"/><stop offset="1" stop-color="#c8ff5e"/>
+      </linearGradient></defs>
+      <path d="M12 22V13M12 13L6 8M12 13l6-5M6 8V4m12 4V4" stroke="url(#tg)" stroke-width="1.7" stroke-linecap="round"/>
+      <circle cx="12" cy="13" r="1.7" fill="url(#tg)"/><circle cx="6" cy="4" r="1.7" fill="#3ad6ff"/>
+      <circle cx="18" cy="4" r="1.7" fill="#c8ff5e"/><circle cx="12" cy="22" r="1.7" fill="#b06bff"/>
+    </svg>
+    <span><span class="re">RE</span>DERIVE</span>
+  </div>
+  <div class="tabs" role="tablist">
+    <button class="tab active" data-page="landing" role="tab">Landing</button>
+    <button class="tab" data-page="console" role="tab">Console</button>
+    <button class="tab" data-page="integrate" role="tab">Integrate</button>
+    <button class="tab" data-page="token" role="tab">Token</button>
+  </div>
+  <a class="nav-cta" href="#" onclick="go('integrate');return false">Get the API →</a>
+</nav>
+
+<!-- ================= LANDING ================= -->
+<main class="page active" id="landing">
+
+  <!-- HERO -->
+  <section class="hero"><div class="wrap"><div class="hero-grid">
+    <div class="reveal in">
+      <span class="eyebrow">Incremental compilation for cognition</span>
+      <h1 class="hero-title">
+        <span class="chroma" data-t="Watch cognition">Watch cognition</span><br>
+        <span class="grad-text">compile.</span>
+      </h1>
+      <p class="lede">An AI researches a crypto project once, remembers the answer in <b>Sibyl Memory</b>, and only re-checks what changes. A due-diligence dossier is a dependency graph — edit one source and only its cone re-derives. Everything else is served from memory, for free.</p>
+      <div class="hero-actions">
+        <a class="btn primary" href="#" onclick="go('console');return false">Watch it compile →</a>
+        <a class="btn" href="#" onclick="go('integrate');return false">Your agent is the customer</a>
+      </div>
+      <p class="heritage">A build system for an agent's reasoning · Sibyl Memory · x402 on Base</p>
+    </div>
+    <div class="glass prism-card reveal in">
+      <div class="sheen"></div>
+      <div class="warm-stat">
+        <span class="warm-price mono">$0.00</span>
+        <span class="warm-label">to re-answer an unchanged dossier<br>24 / 24 derivations reused · 0 recomputed</span>
+      </div>
+      <div class="prism-viz" id="prismViz">
+        <div class="beam"></div>
+        <div class="facet-tri"></div>
+      </div>
+    </div>
+  </div></div></section>
+
+  <!-- PROBLEM -->
+  <section><div class="wrap">
+    <span class="eyebrow reveal">The problem</span>
+    <h2 class="sec-title reveal">Agents recompute the world, every single time.</h2>
+    <p class="sec-sub reveal">Ask an agent the same question twice and it pays twice — re-reading the same docs, re-scoring the same token, burning the same compute. There is no build cache for reasoning. Every answer is a cold start.</p>
+    <div class="grid3">
+      <div class="glass card reveal"><div class="sheen"></div><div class="kicker">Redundant</div><h3>Same input, same work</h3><p>Nothing is content-addressed, so identical questions trigger identical spend. The agent has no memory of what it already proved.</p></div>
+      <div class="glass card reveal"><div class="sheen"></div><div class="kicker">Blind</div><h3>One edit, full rebuild</h3><p>Change a single source and the naive agent redoes all 24 checks — it can't tell which conclusions actually depend on what moved.</p></div>
+      <div class="glass card reveal"><div class="sheen"></div><div class="kicker">Costly</div><h3>Cold start forever</h3><p>Every dossier is $0.48 from scratch. At agent scale, paying full price for unchanged answers is the whole bill.</p></div>
+    </div>
+  </div></section>
+
+  <!-- HOW IT WORKS -->
+  <section><div class="wrap">
+    <span class="eyebrow reveal">How it works</span>
+    <h2 class="sec-title reveal">Reasoning, treated like a build system.</h2>
+    <p class="sec-sub reveal">6 sources → 6 extractions → 15 metrics → 3 conclusions. That's 24 derivations, each one content-addressed by a hash of its inputs. Same hash means reused and free; a new hash means recomputed.</p>
+    <div class="grid3">
+      <div class="glass card reveal"><div class="sheen"></div><div class="kicker">01 · Structure</div><h3>A dossier is a DAG</h3><p>The report isn't prose — it's a dependency graph. 6 sources feed 24 derivations, each a node addressed by its content hash.</p></div>
+      <div class="glass card reveal"><div class="sheen"></div><div class="kicker">02 · Invalidation</div><h3>Only the cone re-derives</h3><p>Edit a source and a mismatched hash auto-invalidates just its downstream cone. Verify-on-serve keeps the rest untouched.</p></div>
+      <div class="glass card reveal"><div class="sheen"></div><div class="kicker">03 · Customer</div><h3>Built for machines</h3><p>The real customer is an AI agent — it calls a metered API and pays per answer with x402 on Base. Humans just watch it work.</p></div>
+    </div>
+  </div></section>
+
+  <!-- MONEY SHOT -->
+  <section><div class="wrap">
+    <span class="eyebrow reveal">The money shot</span>
+    <h2 class="sec-title reveal">Edit one source. Only its cone recomputes.</h2>
+    <p class="sec-sub reveal">This is <b>Uniswap</b>, already analyzed. Change the <b>token</b> source and rebuild — watch the token cone split into the spectrum while every reused node stays clear glass.</p>
+    <div class="cone-wrap">
+      <div class="glass cone-stage reveal"><div class="sheen"></div>
+        <div class="dag" id="dag">
+          <svg class="edges" id="edges"><defs>
+            <linearGradient id="spec" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stop-color="#3ad6ff"/><stop offset=".5" stop-color="#b06bff"/><stop offset="1" stop-color="#c8ff5e"/>
+            </linearGradient></defs>
+          </svg>
+          <!-- nodes injected by JS -->
+        </div>
+      </div>
+      <div class="glass money-panel reveal"><div class="sheen"></div>
+        <div>
+          <div class="price-row"><span class="lbl">Cold run · compute everything</span><span class="val cold mono">$0.48</span></div>
+          <div class="price-row"><span class="lbl">Warm re-answer · nothing changed</span><span class="val free mono">$0.00</span></div>
+          <div class="price-row"><span class="lbl">Edit token · only the cone rebuilds</span><span class="val warm mono">$0.14</span></div>
+        </div>
+        <p style="color:var(--muted);font-size:13.5px">The token edit recomputes ~7 conclusions (~$0.14). The other 17 derivations are reused, free — served straight from Sibyl Memory.</p>
+        <div class="money-btn-row">
+          <button class="btn primary" onclick="editToken()">Edit the token source →</button>
+          <button class="btn" onclick="resetDag()">Reset</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- FINGERPRINT CHIPS -->
+    <div style="margin-top:34px">
+      <span class="kicker">The signature proof · content-addressed derivations</span>
+      <h3 style="font-size:22px;margin:6px 0 6px">Every fingerprint refracts a unique spectrum.</h3>
+      <p style="color:var(--muted);font-size:14px;max-width:64ch">Each derivation is a glass chip whose input hash bends into its own spectral signature. Same hash → same refraction → <b style="color:var(--cyan)">reused</b>. New hash → new refraction → <b style="color:var(--lime)">recomputed</b>.</p>
+      <div class="chips" id="chips"></div>
+    </div>
+  </div></section>
+
+  <!-- DELETION TEST -->
+  <section><div class="wrap">
+    <span class="eyebrow reveal">The deletion test</span>
+    <h2 class="sec-title reveal">The answers live in memory. Prove it — delete them.</h2>
+    <p class="sec-sub reveal">Wipe Sibyl Memory and the whole dossier collapses: 24 records → 0, the database shrinks 471 KB → 4 KB, the report vanishes. Restore, and it comes back warm — instantly.</p>
+    <div class="glass del-stage reveal"><div class="sheen"></div>
+      <div class="del-grid" id="delGrid"></div>
+      <div style="display:flex;gap:40px;flex-wrap:wrap;justify-content:center">
+        <div><div class="del-num" id="recCount" style="color:var(--good)">24</div><div class="del-stat">records in memory</div></div>
+        <div><div class="del-num" id="dbSize" style="color:var(--cyan)">471 KB</div><div class="del-stat">database size</div></div>
+      </div>
+      <div class="money-btn-row">
+        <button class="btn primary" onclick="deleteMem()">Delete memory</button>
+        <button class="btn" onclick="restoreMem()">Restore (warm)</button>
+      </div>
+    </div>
+  </div></section>
+
+  <!-- TIERS -->
+  <section><div class="wrap">
+    <span class="eyebrow reveal">Five Sibyl tiers · your agent is the customer</span>
+    <h2 class="sec-title reveal">Five memory layers. All load-bearing.</h2>
+    <p class="sec-sub reveal">None decorative. Each tier does real work in remembering — under a multi-tenant commons with content-addressed records and MCP + LangGraph surfaces.</p>
+    <div class="tiers">
+      <div class="tier reveal"><div class="bar"></div><h4>WORKING</h4><p>Holds the live run cursor — where the current build is in the graph.</p></div>
+      <div class="tier reveal"><div class="bar"></div><h4>EPISODIC</h4><p>Stores the 24 derivations that produce the reuse hits.</p></div>
+      <div class="tier reveal"><div class="bar"></div><h4>SEMANTIC</h4><p>The extracted facts — what each source actually said.</p></div>
+      <div class="tier reveal"><div class="bar"></div><h4>PROCEDURAL / REF</h4><p>The pricing + invalidation doctrine the engine consults.</p></div>
+      <div class="tier reveal"><div class="bar"></div><h4>COLD</h4><p>Raw sources + FTS5 keyword recall for deep retrieval.</p></div>
+    </div>
+  </div></section>
+
+  <!-- ONCHAIN -->
+  <section><div class="wrap">
+    <span class="eyebrow reveal">On-chain proof · Base Sepolia</span>
+    <h2 class="sec-title reveal">The price it computes is the price it pays.</h2>
+    <p class="sec-sub reveal">Real gasless USDC settlements via x402 (EIP-3009). Four real transactions, verifiable on Basescan.</p>
+    <div class="tx-grid">
+      <a class="tx reveal" href="https://sepolia.basescan.org" target="_blank" rel="noopener"><span class="dot"></span><div><div class="h">0x10759f3c…</div><div class="s">x402 · EIP-3009 · settled</div></div><span class="go">view →</span></a>
+      <a class="tx reveal" href="https://sepolia.basescan.org" target="_blank" rel="noopener"><span class="dot"></span><div><div class="h">0x11ae4043…</div><div class="s">x402 · EIP-3009 · settled</div></div><span class="go">view →</span></a>
+      <a class="tx reveal" href="https://sepolia.basescan.org" target="_blank" rel="noopener"><span class="dot"></span><div><div class="h">0x5ed48622…</div><div class="s">x402 · EIP-3009 · settled</div></div><span class="go">view →</span></a>
+      <a class="tx reveal" href="https://sepolia.basescan.org" target="_blank" rel="noopener"><span class="dot"></span><div><div class="h">0x92606759…</div><div class="s">x402 · EIP-3009 · settled</div></div><span class="go">view →</span></a>
+    </div>
+    <div class="contract-line reveal">Contract <b>0xc211C942946011859ca634F22400d80570ED12A5</b> · <span>sepolia.basescan.org</span></div>
+  </div></section>
+
+  <!-- TOKEN NOD -->
+  <section><div class="wrap">
+    <span class="eyebrow reveal">The token</span>
+    <h2 class="sec-title reveal">Rederive meters memory. The token captures the economy.</h2>
+    <p class="sec-sub reveal">Agents are the buyers, paying per answer with x402. As metered memory scales across a multi-tenant commons, the token captures the metered-memory economy. Chart and buy are coming soon — the thesis is live today.</p>
+    <div style="display:flex;gap:14px;flex-wrap:wrap">
+      <a class="btn primary" href="#" onclick="go('token');return false">Read the token thesis →</a>
+      <a class="btn" href="https://sepolia.basescan.org" target="_blank" rel="noopener">On-chain proof</a>
+    </div>
+  </div></section>
+
+  <!-- FOOTER -->
+  <footer class="footer"><div class="wrap">
+    <div class="big-cta grad-text">Watch cognition compile.</div>
+    <div class="foot-links">
+      <a href="#" onclick="go('console');return false">Console</a>
+      <a href="#" onclick="go('integrate');return false">Integrate</a>
+      <a href="#" onclick="go('token');return false">Token</a>
+      <a href="https://sepolia.basescan.org" target="_blank" rel="noopener">Basescan</a>
+      <a href="https://rederive.xyz" target="_blank" rel="noopener">rederive.xyz</a>
+    </div>
+    <div class="foot-note">Rederive · Sibyl Memory · incremental compilation for cognition · x402 on Base</div>
+  </div></footer>
+</main>
+
+<!-- ================= CONSOLE ================= -->
+<main class="page" id="console">
+  <section><div class="wrap">
+    <span class="eyebrow">Console · watch it compile</span>
+    <h2 class="sec-title">The five-step walkthrough.</h2>
+    <div class="glass statusbar">
+      <span class="stat-pill">Project: <b>Uniswap</b></span>
+      <span class="stat-pill verdict">Verdict: <b id="cVerdict">Good</b></span>
+      <span class="stat-pill">Score: <b id="cScore">82</b>/100</span>
+      <span class="stat-pill">Risk: <b id="cRisk">Low</b></span>
+      <span class="stat-pill">In memory: <b id="cMem">24/24</b></span>
+      <span class="stat-pill">Cost this step: <b id="cCost">$0.48</b></span>
+    </div>
+
+    <div class="console-body">
+      <div class="glass" style="padding:20px"><div class="sheen"></div>
+        <div class="check-grid" id="checkGrid"></div>
+      </div>
+      <div>
+        <div class="steps" id="steps"></div>
+        <div class="glass narration" id="narration"><div class="sheen"></div></div>
+      </div>
+    </div>
+  </div></section>
+</main>
+
+<!-- ================= INTEGRATE ================= -->
+<main class="page" id="integrate">
+  <section><div class="wrap">
+    <span class="eyebrow">Integrate · your agent is the customer</span>
+    <h2 class="sec-title">Three ways an agent plugs in.</h2>
+    <p class="sec-sub">The real customer is a machine. It calls the metered API and pays per answer with x402 on Base — $0.02 per derivation, reused derivations are $0.00. No API keys to rotate; the payment is the auth.</p>
+
+    <div class="pathrow">
+      <div class="glass path"><div class="sheen"></div>
+        <div class="path-head"><div class="path-num">1</div><h3>Paid API call · x402 on Base</h3></div>
+        <p class="desc">The agent pays per call. x402 settles the quote inline; the dossier comes back as JSON.</p>
+<pre><span class="k">client</span> = <span class="f">x402Client</span>()               <span class="c"># pays per call, on Base</span>
+r = <span class="k">await</span> http.<span class="f">post</span>(<span class="s">".../answer"</span>)   <span class="c"># x402 settles the quote</span>
+dossier = r.<span class="f">json</span>()[<span class="s">"dossier"</span>]       <span class="c"># -&gt; the verdict, as JSON</span></pre>
+      </div>
+
+      <div class="glass path"><div class="sheen"></div>
+        <div class="path-head"><div class="path-num">2</div><h3>MCP tool · drop-in for Claude</h3></div>
+        <p class="desc">A FastMCP server named <b>rederive</b>. Point any MCP client at it — the model calls these tools directly, no glue code.</p>
+<pre><span class="k">@mcp.tool</span>()
+<span class="k">def</span> <span class="f">get_derivation</span>(node): ...   <span class="c"># get_derivation("s_verdict")</span>
+<span class="k">@mcp.tool</span>()
+<span class="k">def</span> <span class="f">recall</span>(q, limit): ...       <span class="c"># keyword search the memory</span></pre>
+      </div>
+
+      <div class="glass path"><div class="sheen"></div>
+        <div class="path-head"><div class="path-num">3</div><h3>LangGraph node</h3></div>
+        <p class="desc">Rederive becomes the memory node inside the agent's own workflow.</p>
+<pre>graph = <span class="f">build_langgraph</span>(engine)
+<span class="c"># Rederive becomes the memory node inside the agent's own workflow</span></pre>
+      </div>
+    </div>
+
+    <div style="margin-top:44px">
+      <span class="kicker">x402 pricing · metered per answer</span>
+      <h3 style="font-size:24px;margin:8px 0 20px">You pay for thought, not repetition.</h3>
+      <div class="price-model">
+        <div class="pm"><div class="big mono grad-text">$0.02</div><div class="lab">per derivation computed</div></div>
+        <div class="pm"><div class="big mono" style="color:var(--good)">$0.00</div><div class="lab">per reused derivation</div></div>
+        <div class="pm"><div class="big mono" style="color:var(--cyan)">$0.48</div><div class="lab">cold dossier · 24 × $0.02</div></div>
+      </div>
+    </div>
+
+    <!-- fingerprint in console/integrate context -->
+    <div style="margin-top:44px">
+      <span class="kicker">Content-addressed · the signature proof</span>
+      <h3 style="font-size:24px;margin:8px 0 8px">Same hash, same refraction.</h3>
+      <p style="color:var(--muted);font-size:14px;max-width:64ch">Every node is keyed by a hash of its inputs. When your agent asks again, matching fingerprints return the same spectral signature — proof it's reused, billed at $0.00.</p>
+      <div class="chips" id="chipsInt"></div>
+    </div>
+  </div></section>
+</main>
+
+<!-- ================= TOKEN ================= -->
+<main class="page" id="token">
+  <section><div class="wrap">
+    <span class="eyebrow">Token · the metered-memory economy</span>
+    <div class="glass token-hero"><div class="sheen"></div>
+      <h2 class="grad-text">The token captures metered memory.</h2>
+      <p style="color:var(--muted);font-size:17px;max-width:60ch;margin:18px auto 0">Rederive meters memory per answer with x402. Agents are the buyers. As reuse compounds across a multi-tenant commons, the token captures the economy of remembering — not the cost of re-computing.</p>
+    </div>
+
+    <div class="grid3" style="margin-top:26px">
+      <div class="glass card"><div class="sheen"></div><div class="kicker">Utility</div><h3>Meters the memory</h3><p>Every answer is priced per derivation and settled via x402. The token is the unit of account for the metered-memory economy.</p></div>
+      <div class="glass card"><div class="sheen"></div><div class="kicker">Demand</div><h3>Agents are the buyers</h3><p>Machines pay per call. As agent traffic grows, so does metered demand for reused, content-addressed answers.</p></div>
+      <div class="glass card"><div class="sheen"></div><div class="kicker">Moat</div><h3>Reuse compounds</h3><p>A shared commons means every dossier warms the next tenant's cache. The more it remembers, the cheaper it gets, the stronger the network.</p></div>
+    </div>
+
+    <div style="margin-top:26px">
+      <span class="kicker">Chart</span>
+      <h3 style="font-size:22px;margin:6px 0 4px">Coming soon — honestly.</h3>
+      <p style="color:var(--muted);font-size:14px">Tokenomics and contract aren't live yet. What is live: the product, the metered API, and real x402 settlements on Base. The thesis stands on proof, not promises.</p>
+      <div class="soon-chart">
+        <svg class="spark" viewBox="0 0 400 220" preserveAspectRatio="none" aria-hidden="true">
+          <defs><linearGradient id="sp" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#3ad6ff"/><stop offset=".5" stop-color="#b06bff"/><stop offset="1" stop-color="#c8ff5e"/></linearGradient></defs>
+          <polyline points="0,180 50,168 100,172 150,140 200,150 250,110 300,120 350,70 400,54" fill="none" stroke="url(#sp)" stroke-width="2.5" opacity=".8"/>
+        </svg>
+        <span class="soon-badge">Chart · Buy — coming soon</span>
+      </div>
+    </div>
+
+    <div style="margin-top:30px">
+      <span class="kicker">Links · be where the proof is</span>
+      <div class="social-row">
+        <a class="social" href="https://rederive.xyz" target="_blank" rel="noopener"><div class="sl">Site</div><div class="sv">rederive.xyz</div></a>
+        <a class="social" href="#" onclick="go('integrate');return false"><div class="sl">API</div><div class="sv">/answer · x402</div></a>
+        <a class="social" href="https://sepolia.basescan.org" target="_blank" rel="noopener"><div class="sl">On-chain</div><div class="sv">Basescan</div></a>
+        <a class="social" href="https://twitter.com" target="_blank" rel="noopener"><div class="sl">X / Twitter</div><div class="sv">@rederive</div></a>
+      </div>
+    </div>
+  </div></section>
+</main>
+
+<script>
+/* ---------- PAGE NAV ---------- */
+function go(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.page===id));
+  window.scrollTo({top:0,behavior:'instant'});
+  if(id==='console') buildConsole();
+}
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>go(t.dataset.page)));
+
+/* ---------- REVEAL ---------- */
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+/* ---------- HERO PRISM RAYS ---------- */
+(function(){
+  const viz=document.getElementById('prismViz'); if(!viz) return;
+  const cols=['#3ad6ff','#6bb7ff','#b06bff','#e07ad0','#ffd166','#c8ff5e'];
+  cols.forEach((c,i)=>{
+    const r=document.createElement('div'); r.className='ray';
+    r.style.background='linear-gradient(90deg,'+c+',transparent)';
+    r.style.transform='rotate('+((i-2.5)*7)+'deg)';
+    r.style.animationDelay=(.4+i*.12)+'s';
+    viz.appendChild(r);
+  });
+})();
+
+/* ---------- DAG (money shot) ---------- */
+const sources=['Docs','Code','Token','Team','Community','Audits'];
+const nodes=[
+  // sources col x=12%
+  {id:'src-token',x:12,y:50,t:'Token source',src:true,cone:true},
+  {id:'src-docs',x:12,y:14,t:'Docs',src:true},
+  {id:'src-code',x:12,y:30,t:'Code',src:true},
+  {id:'src-team',x:12,y:66,t:'Team',src:true},
+  {id:'src-comm',x:12,y:82,t:'Community',src:true},
+  {id:'src-aud',x:12,y:96,t:'Audits',src:true},
+  // token metrics (cone)
+  {id:'m-supply',x:46,y:40,t:'Supply risk',cone:true},
+  {id:'m-util',x:46,y:52,t:'Utility',cone:true},
+  {id:'m-liq',x:46,y:64,t:'Liquidity',cone:true},
+  // other metrics (clear)
+  {id:'m-doc',x:46,y:14,t:'Doc quality'},
+  {id:'m-cov',x:46,y:26,t:'Test coverage'},
+  {id:'m-sent',x:46,y:82,t:'Sentiment'},
+  {id:'m-aud',x:46,y:94,t:'Audit status'},
+  // conclusions
+  {id:'c-token',x:82,y:52,t:'Token conclusion',cone:true},
+  {id:'c-code',x:82,y:22,t:'Code & team'},
+  {id:'c-verdict',x:82,y:82,t:'Final verdict',cone:true},
+];
+const edges=[
+  ['src-token','m-supply'],['src-token','m-util'],['src-token','m-liq'],
+  ['m-supply','c-token'],['m-util','c-token'],['m-liq','c-token'],
+  ['c-token','c-verdict'],
+  ['src-docs','m-doc'],['src-code','m-cov'],['m-doc','c-code'],['m-cov','c-code'],
+  ['src-comm','m-sent'],['src-aud','m-aud'],['m-sent','c-verdict'],['m-aud','c-verdict'],
+];
+function buildDag(){
+  const dag=document.getElementById('dag'); if(!dag) return;
+  const svg=document.getElementById('edges');
+  const W=dag.clientWidth, H=dag.clientHeight;
+  const pos={};
+  nodes.forEach(n=>{
+    const el=document.createElement('div');
+    el.className='node'+(n.src?' src':''); el.id='n-'+n.id; el.textContent=n.t;
+    el.style.left=n.x+'%'; el.style.top=n.y+'%';
+    dag.appendChild(el); pos[n.id]=n;
+  });
+  edges.forEach(([a,b])=>{
+    const l=document.createElementNS('http://www.w3.org/2000/svg','line');
+    l.setAttribute('x1',pos[a].x/100*W); l.setAttribute('y1',pos[a].y/100*H);
+    l.setAttribute('x2',pos[b].x/100*W); l.setAttribute('y2',pos[b].y/100*H);
+    l.dataset.a=a; l.dataset.b=b;
+    if(pos[a].cone&&pos[b].cone) l.classList.add('cone-edge');
+    svg.appendChild(l);
+  });
+}
+function editToken(){
+  nodes.filter(n=>n.cone&&!n.src).forEach(n=>{
+    const el=document.getElementById('n-'+n.id); if(el) el.classList.add('recompute');
+  });
+  document.querySelectorAll('#edges line.cone-edge').forEach(l=>l.classList.add('hot'));
+  document.getElementById('n-src-token').style.boxShadow='0 0 22px rgba(200,255,94,.7)';
+}
+function resetDag(){
+  document.querySelectorAll('#dag .node').forEach(n=>{n.classList.remove('recompute');n.style.boxShadow=''});
+  document.querySelectorAll('#edges line').forEach(l=>l.classList.remove('hot'));
+}
+window.addEventListener('load',()=>{buildDag();buildChips();buildDelGrid();});
+
+/* ---------- FINGERPRINT CHIPS ---------- */
+const chipData=[
+  {node:'s_verdict',hash:'0x8f3a…c1',hue:12,reused:true},
+  {node:'m_liquidity',hash:'0x2b7e…9d',hue:190,reused:true},
+  {node:'m_supply',hash:'0xd41c…04',hue:280,reused:false},
+  {node:'m_utility',hash:'0x6ae0…7f',hue:320,reused:false},
+  {node:'m_coverage',hash:'0x109a…22',hue:95,reused:true},
+  {node:'m_audit',hash:'0x5ed4…86',hue:150,reused:true},
+];
+function chipHTML(d){
+  const grad=`conic-gradient(from ${d.hue}deg, hsl(${d.hue},90%,62%), hsl(${(d.hue+120)%360},90%,64%), hsl(${(d.hue+240)%360},90%,64%), hsl(${d.hue},90%,62%))`;
+  return `<div class="chip"><div class="facet" style="background:${grad}"></div>
+    <div class="hash mono">${d.node}</div>
+    <div class="hash mono" style="color:var(--dim)">${d.hash}</div>
+    <span class="tag ${d.reused?'reused':'new'}">${d.reused?'same hash · reused':'new hash · recomputed'}</span></div>`;
+}
+function buildChips(){
+  const html=chipData.map(chipHTML).join('');
+  const a=document.getElementById('chips'); if(a) a.innerHTML=html;
+  const b=document.getElementById('chipsInt'); if(b) b.innerHTML=html;
+}
+
+/* ---------- DELETION TEST ---------- */
+function buildDelGrid(){
+  const g=document.getElementById('delGrid'); if(!g) return;
+  for(let i=0;i<24;i++){const c=document.createElement('div');c.className='del-cell';
+    c.style.animationDelay=(i*.02)+'s';g.appendChild(c);}
+}
+function deleteMem(){
+  const cells=[...document.querySelectorAll('.del-cell')];
+  cells.forEach((c,i)=>setTimeout(()=>c.classList.add('gone'),i*45));
+  setTimeout(()=>{
+    document.getElementById('recCount').textContent='0';
+    document.getElementById('recCount').style.color='var(--weak)';
+    document.getElementById('dbSize').textContent='4 KB';
+    document.getElementById('dbSize').style.color='var(--weak)';
+  },cells.length*45+120);
+}
+function restoreMem(){
+  const cells=[...document.querySelectorAll('.del-cell')];
+  cells.forEach((c,i)=>setTimeout(()=>c.classList.remove('gone'),i*20));
+  document.getElementById('recCount').textContent='24';
+  document.getElementById('recCount').style.color='var(--good)';
+  document.getElementById('dbSize').textContent='471 KB';
+  document.getElementById('dbSize').style.color='var(--cyan)';
+}
+
+/* ---------- CONSOLE ---------- */
+const checks=[
+  ['Docs & API',[['Doc quality','good'],['Storage architecture','good'],['API surface','fair']]],
+  ['Code & team',[['Commit rate','good'],['Test coverage','good'],['Bus factor','fair'],['Team track record','good']]],
+  ['Token',[['Supply risk','fair'],['Utility','good'],['Liquidity','good']]],
+  ['Community',[['Transparency','good'],['Sentiment','good'],['Growth','fair']]],
+  ['Security',[['Audit status','good'],['Security incidents','good']]],
+];
+const tokenChecks=['Supply risk','Utility','Liquidity'];
+const stepsData=[
+  {n:'STEP 01',t:'What the AI built',
+   h:'Read 6 Uniswap sources → 15 checks + 1 verdict',
+   p:'It read docs, code, token, team, community and audits, then derived 15 checks and one verdict. A cold run computes all 24 derivations.',
+   price:'$0.48',pc:'var(--muted)',mem:'24/24',cost:'$0.48',mode:'cold'},
+  {n:'STEP 02',t:'Asking again is free',
+   h:'Ask again → 0 recomputed → $0.00',
+   p:'It already did the work and remembers it. Ask the same question and every derivation is served from memory. Nothing recomputes.',
+   price:'$0.00',pc:'var(--good)',mem:'24/24',cost:'$0.00',mode:'warm'},
+  {n:'STEP 03',t:'Change one thing, redo only that',
+   h:'Edit the token source → only token checks light up → ~$0.14',
+   p:'Edit the token source and rebuild. Only the token cone re-derives — Supply risk, Utility, Liquidity refract into the spectrum. You pay ~$0.14, not $0.48.',
+   price:'$0.14',pc:'var(--cyan)',mem:'17/24',cost:'$0.14',mode:'cone'},
+  {n:'STEP 04',t:'The answers live in memory',
+   h:'Delete memory → the report vanishes → restore, warm',
+   p:'This is the gate moment. Delete Sibyl Memory: 24 records → 0, the database collapses 471 KB → 4 KB, the dossier disappears. Restore and it returns warm, instantly.',
+   price:'—',pc:'var(--weak)',mem:'0/24',cost:'$0.00',mode:'gone'},
+  {n:'STEP 05',t:'How it remembers, who uses it',
+   h:'The customer is an AI agent · 5 memory layers under the hood',
+   p:'The real customer is a machine — three integration paths (API, MCP, LangGraph), paying per answer with x402 on Base. Under the hood, five Sibyl layers (WORKING, EPISODIC, SEMANTIC, PROCEDURAL/REF, COLD) do the remembering.',
+   price:'x402',pc:'var(--magenta)',mem:'24/24',cost:'$0.00',mode:'warm'},
+];
+let curStep=0;
+function buildConsole(){
+  const grid=document.getElementById('checkGrid');
+  if(grid.dataset.built){setStep(curStep);return;}
+  grid.dataset.built='1';
+  let html='';
+  checks.forEach(([grp,items])=>{
+    html+=`<div class="group-label">${grp}</div>`;
+    items.forEach(([name,v])=>{
+      html+=`<div class="check" data-name="${name}"><div class="cn">${name}</div><div class="cv ${v}">${v[0].toUpperCase()+v.slice(1)}</div></div>`;
+    });
+  });
+  grid.innerHTML=html;
+  const st=document.getElementById('steps');
+  st.innerHTML=stepsData.map((s,i)=>`<div class="step${i===0?' active':''}" data-i="${i}"><div class="sn">${s.n}</div><div class="st">${s.t}</div></div>`).join('');
+  st.querySelectorAll('.step').forEach(el=>el.addEventListener('click',()=>setStep(+el.dataset.i)));
+  setStep(0);
+}
+function setStep(i){
+  curStep=i; const s=stepsData[i];
+  document.querySelectorAll('#steps .step').forEach(el=>el.classList.toggle('active',+el.dataset.i===i));
+  const n=document.getElementById('narration');
+  n.innerHTML=`<div class="sheen"></div><h3>${s.t}</h3><div class="price-tag mono" style="color:${s.pc}">${s.price}</div><p>${s.p}</p>`;
+  // status bar
+  document.getElementById('cMem').textContent=s.mem;
+  document.getElementById('cCost').textContent=s.cost;
+  document.getElementById('cCost').style.color=s.pc;
+  // grid reactions
+  const cells=document.querySelectorAll('#checkGrid .check');
+  cells.forEach(c=>{c.classList.remove('hot');c.style.opacity='';c.style.transform='';});
+  if(s.mode==='cone'){
+    cells.forEach(c=>{if(tokenChecks.includes(c.dataset.name)) c.classList.add('hot');});
+  }else if(s.mode==='gone'){
+    cells.forEach((c,k)=>{c.style.transitionDelay=(k*.02)+'s';c.style.opacity='.12';c.style.transform='scale(.9)';});
+  }
+}
+
+/* init default console lazily on first visit handled by go(); but ensure grid ready if user lands via tab */
+</script>
+</body>
+</html>

@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Rederive — The Memory Dossier</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..600&family=Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,300..500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --graphite:#14130f;
+    --panel:#1c1a15;
+    --panel-2:#221f19;
+    --gold:#d8b46a;
+    --foil-a:#f0dca0;
+    --foil-b:#b78f3e;
+    --cream:#ece7db;
+    --muted:#a49a86;
+    --hair:rgba(216,180,106,.28);
+    --hair-soft:rgba(236,231,219,.09);
+    --sage:#98a76b;
+    --ochre:#cfa24a;
+    --oxblood:#b5615a;
+    --disp:"Fraunces",Georgia,serif;
+    --read:"Newsreader",Georgia,serif;
+    --ui:"Satoshi","Inter",system-ui,sans-serif;
+    --mono:"Space Mono",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--graphite);color:var(--cream);
+    font-family:var(--read);font-size:17px;line-height:1.7;
+    -webkit-font-smoothing:antialiased;
+    background-image:
+      radial-gradient(120% 80% at 50% -10%, rgba(216,180,106,.06), transparent 60%),
+      radial-gradient(80% 60% at 100% 10%, rgba(183,143,62,.04), transparent 70%);
+  }
+  a{color:inherit;text-decoration:none}
+  ::selection{background:rgba(216,180,106,.28);color:var(--cream)}
+  :focus-visible{outline:2px solid var(--gold);outline-offset:3px;border-radius:2px}
+
+  /* ---- Foil / gold text ---- */
+  .foil{
+    background:linear-gradient(100deg,var(--foil-b),var(--foil-a) 40%,var(--gold) 55%,var(--foil-b));
+    background-size:200% auto;-webkit-background-clip:text;background-clip:text;
+    -webkit-text-fill-color:transparent;color:transparent;
+  }
+  .shimmer{animation:shimmer 6s linear infinite}
+  @keyframes shimmer{to{background-position:200% center}}
+
+  /* ---- Nav ---- */
+  .mast{
+    position:sticky;top:0;z-index:50;
+    background:rgba(20,19,15,.82);backdrop-filter:blur(14px) saturate(1.1);
+    border-bottom:1px solid var(--hair);
+  }
+  .mast-in{max-width:1160px;margin:0 auto;padding:14px 28px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+  .wordmark{font-family:var(--disp);font-weight:600;font-size:20px;letter-spacing:.02em;display:flex;align-items:center;gap:10px}
+  .wordmark .re{color:var(--gold)}
+  .tree{width:22px;height:22px;flex:none}
+  .tabs{display:flex;gap:4px;flex-wrap:wrap}
+  .tab{
+    font-family:var(--ui);font-size:12.5px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--muted);padding:8px 14px;border:1px solid transparent;border-radius:2px;cursor:pointer;
+    background:none;transition:color .25s ease,border-color .25s ease;
+  }
+  .tab:hover{color:var(--cream)}
+  .tab.active{color:var(--graphite);background:linear-gradient(100deg,var(--foil-b),var(--foil-a));border-color:var(--gold)}
+
+  /* ---- Page switching ---- */
+  .page{display:none;max-width:1160px;margin:0 auto;padding:0 28px 120px}
+  .page.on{display:block;animation:fadeUp .7s ease both}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+  /* ---- Editorial section heads ---- */
+  .kicker{font-family:var(--ui);font-size:11.5px;letter-spacing:.34em;text-transform:uppercase;color:var(--gold);display:flex;align-items:center;gap:14px;margin:0 0 18px}
+  .kicker .num{font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .rule-draw{height:1px;background:var(--gold);flex:1;transform-origin:left;transform:scaleX(0);transition:transform 1.1s cubic-bezier(.2,.7,.2,1)}
+  .reveal.in .rule-draw{transform:scaleX(1)}
+  h1,h2,h3{font-family:var(--disp);font-weight:400;letter-spacing:-.01em;line-height:1.08;margin:0}
+  h2.head{font-size:clamp(30px,5vw,52px);margin:0 0 14px}
+  h2.head em{font-style:italic;color:var(--gold)}
+  .lede{font-size:19px;color:var(--cream);max-width:60ch;font-weight:300}
+  .muted{color:var(--muted)}
+  .reveal{opacity:0;transform:translateY(22px);transition:opacity .9s ease,transform .9s cubic-bezier(.2,.7,.2,1)}
+  .reveal.in{opacity:1;transform:none}
+
+  section.band{padding:96px 0 12px;border-top:1px solid var(--hair-soft)}
+  section.band:first-of-type{border-top:none}
+
+  /* ---- Hero ---- */
+  .hero{padding:96px 0 40px;text-align:left}
+  .hero .drop{font-family:var(--disp);font-size:clamp(44px,8vw,92px);line-height:1.02;font-weight:300;letter-spacing:-.02em;margin:8px 0 22px}
+  .hero .drop em{font-style:italic;color:var(--gold)}
+  .dropcap::first-letter{font-family:var(--disp);float:left;font-size:78px;line-height:.7;padding:8px 14px 0 0;color:var(--gold);font-weight:400}
+  .hero-grid{display:grid;grid-template-columns:1.4fr .9fr;gap:48px;align-items:end;margin-top:36px}
+  .stat-card{border:1px solid var(--hair);background:linear-gradient(180deg,var(--panel),var(--panel-2));border-radius:4px;padding:26px 28px;position:relative;overflow:hidden}
+  .stat-card::before{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 30%,rgba(240,220,160,.07) 46%,transparent 60%);pointer-events:none}
+  .stat-card .lab{font-family:var(--ui);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted)}
+  .stat-card .big{font-family:var(--disp);font-size:64px;line-height:1;margin:8px 0 4px}
+  .heritage{font-family:var(--read);font-style:italic;color:var(--muted);margin-top:22px;font-size:16px}
+
+  /* ---- Prose blocks ---- */
+  .cols2{display:grid;grid-template-columns:1fr 1fr;gap:44px;margin-top:26px}
+  .cols3{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;margin-top:30px}
+  .figart{border:1px solid var(--hair);border-radius:4px;padding:24px;background:var(--panel);position:relative}
+  .figart h3{font-size:22px;margin-bottom:8px}
+  .figart .no{font-family:var(--mono);font-size:12px;color:var(--gold);letter-spacing:.1em}
+  .figart p{margin:10px 0 0;font-size:15.5px;color:var(--muted)}
+
+  /* ---- Pull quote ---- */
+  .pull{font-family:var(--disp);font-style:italic;font-weight:300;font-size:clamp(26px,3.6vw,38px);line-height:1.3;border-left:2px solid var(--gold);padding:6px 0 6px 26px;margin:30px 0;max-width:24ch}
+  .pull.center{text-align:center;border:none;margin:36px auto;max-width:30ch;padding:0}
+
+  /* ---- Financial-statement table ---- */
+  .ledger{width:100%;border-collapse:collapse;margin-top:26px;font-size:15px}
+  .ledger caption{font-family:var(--ui);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);text-align:left;padding-bottom:12px}
+  .ledger th{font-family:var(--ui);font-weight:500;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);text-align:left;padding:8px 12px;border-bottom:1px solid var(--hair)}
+  .ledger td{padding:11px 12px;border-bottom:1px solid var(--hair-soft);vertical-align:middle}
+  .ledger tr.grp td{font-family:var(--ui);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);padding-top:20px;border-bottom:1px solid var(--hair)}
+  .ledger td.chk{font-family:var(--read)}
+  .ledger td.val{font-family:var(--mono);color:var(--muted);text-align:right;font-size:13px}
+  .tag{font-family:var(--ui);font-size:11px;font-weight:500;letter-spacing:.08em;padding:2px 9px;border-radius:2px;display:inline-flex;align-items:center;gap:6px;border:1px solid}
+  .tag::before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor}
+  .tag.good{color:var(--sage);border-color:rgba(152,167,107,.4);background:rgba(152,167,107,.08)}
+  .tag.fair{color:var(--ochre);border-color:rgba(207,162,74,.4);background:rgba(207,162,74,.08)}
+  .tag.weak{color:var(--oxblood);border-color:rgba(181,97,90,.4);background:rgba(181,97,90,.08)}
+
+  /* ---- Cone visual ---- */
+  .money{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;margin-top:30px;align-items:center}
+  .conewrap{border:1px solid var(--hair);border-radius:4px;background:var(--panel);padding:20px}
+  .node{transition:opacity .5s ease,fill .5s ease,stroke .5s ease}
+  .edge{transition:stroke .5s ease,opacity .5s ease}
+  .mathcard{border:1px solid var(--hair);border-radius:4px;padding:24px;background:linear-gradient(180deg,var(--panel),var(--panel-2))}
+  .mathrow{display:flex;justify-content:space-between;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--hair-soft);font-family:var(--mono);font-size:14px}
+  .mathrow:last-child{border:none}
+  .mathrow .k{font-family:var(--read);color:var(--muted);font-size:14.5px}
+  .mathrow .price{font-size:20px}
+  .price.free{color:var(--sage)}
+  .price.warm{color:var(--gold)}
+  .price.cold{color:var(--cream)}
+  .btn{font-family:var(--ui);font-weight:500;font-size:13px;letter-spacing:.06em;padding:11px 20px;border-radius:2px;border:1px solid var(--gold);cursor:pointer;background:none;color:var(--gold);transition:.25s}
+  .btn:hover{background:linear-gradient(100deg,var(--foil-b),var(--foil-a));color:var(--graphite)}
+  .btn.solid{background:linear-gradient(100deg,var(--foil-b),var(--foil-a));color:var(--graphite)}
+  .btn.solid:hover{filter:brightness(1.08)}
+  .btn.ghost{border-color:var(--hair);color:var(--muted)}
+  .btn.ghost:hover{color:var(--cream);border-color:var(--gold);background:none}
+
+  /* ---- Deletion test ---- */
+  .deletion{border:1px solid var(--hair);border-radius:4px;background:var(--panel);padding:30px;margin-top:30px}
+  .pages{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin:22px 0}
+  .leaf{aspect-ratio:3/4;border:1px solid var(--hair-soft);border-radius:3px;background:linear-gradient(180deg,var(--panel-2),#1a1813);padding:9px;overflow:hidden;transition:opacity .5s ease,filter .5s ease}
+  .leaf .ln{height:3px;background:var(--hair-soft);border-radius:2px;margin-bottom:6px}
+  .leaf .ln.g{background:rgba(216,180,106,.35)}
+  .leaf .ln.s{width:60%}
+  .leaf.redacted{filter:grayscale(1)}
+  .leaf.blank .ln{opacity:0}
+  .dstat{display:flex;gap:34px;flex-wrap:wrap;font-family:var(--mono);font-size:13px;color:var(--muted);margin-top:6px}
+  .dstat b{font-family:var(--disp);font-weight:400;font-size:26px;color:var(--cream);display:block;font-variant-numeric:tabular-nums}
+  .dstat b.zero{color:var(--oxblood)}
+
+  /* ---- Tiers ---- */
+  .tiers{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-top:28px}
+  .tier{border:1px solid var(--hair);border-radius:4px;padding:18px 16px;background:var(--panel);transition:transform .3s ease,border-color .3s ease}
+  .tier:hover{transform:translateY(-4px);border-color:var(--gold)}
+  .tier .t-n{font-family:var(--mono);font-size:11px;color:var(--gold);letter-spacing:.12em}
+  .tier h3{font-family:var(--ui);font-size:14px;font-weight:700;letter-spacing:.06em;margin:10px 0 8px;color:var(--cream)}
+  .tier p{font-size:13.5px;color:var(--muted);margin:0}
+
+  /* ---- On-chain ---- */
+  .txgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:26px}
+  .tx{display:flex;align-items:center;justify-content:space-between;gap:14px;border:1px solid var(--hair);border-radius:4px;padding:16px 18px;background:var(--panel);font-family:var(--mono);font-size:14px;transition:border-color .25s,background .25s}
+  .tx:hover{border-color:var(--gold);background:var(--panel-2)}
+  .tx .h{color:var(--cream)}
+  .tx .go{font-family:var(--ui);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold)}
+  .contract{font-family:var(--mono);font-size:13px;color:var(--muted);margin-top:16px;word-break:break-all}
+  .contract b{color:var(--cream)}
+
+  /* ---- Token page ---- */
+  .chartwrap{border:1px solid var(--hair);border-radius:4px;background:var(--panel);padding:28px;margin-top:26px;position:relative;min-height:220px;display:flex;align-items:center;justify-content:center}
+  .soon{font-family:var(--ui);font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);border:1px solid var(--hair);padding:6px 14px;border-radius:2px}
+  .social{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}
+  .social a{font-family:var(--ui);font-size:13px;letter-spacing:.04em;padding:11px 18px;border:1px solid var(--hair);border-radius:2px;color:var(--muted);transition:.25s}
+  .social a:hover{color:var(--gold);border-color:var(--gold)}
+
+  /* ---- Code blocks ---- */
+  .codeblock{border:1px solid var(--hair);border-radius:4px;background:#100f0c;padding:20px 22px;font-family:var(--mono);font-size:13.5px;line-height:1.75;overflow-x:auto;margin-top:14px;color:#cbc3b0}
+  .codeblock .c{color:var(--muted)}
+  .codeblock .k{color:var(--gold)}
+  .codeblock .s{color:var(--sage)}
+  .pathblock{display:grid;gap:34px;margin-top:34px}
+  .path{border-top:1px solid var(--hair);padding-top:22px}
+  .path .p-n{font-family:var(--mono);color:var(--gold);font-size:13px}
+  .path h3{font-size:26px;margin:8px 0 6px}
+  .path h3 span{font-family:var(--ui);font-size:12px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);vertical-align:middle;margin-left:12px}
+
+  /* ---- Console ---- */
+  .statusbar{display:flex;flex-wrap:wrap;gap:0;border:1px solid var(--hair);border-radius:4px;background:linear-gradient(180deg,var(--panel),var(--panel-2));margin-top:24px;overflow:hidden}
+  .sb{padding:14px 20px;border-right:1px solid var(--hair-soft);flex:1;min-width:120px}
+  .sb:last-child{border-right:none}
+  .sb .l{font-family:var(--ui);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+  .sb .v{font-family:var(--disp);font-size:22px;margin-top:4px}
+  .sb .v.mono{font-family:var(--mono);font-size:16px}
+  .steps{display:flex;gap:8px;flex-wrap:wrap;margin-top:26px}
+  .step{font-family:var(--ui);font-size:12px;letter-spacing:.04em;padding:8px 14px;border:1px solid var(--hair);border-radius:2px;color:var(--muted);cursor:pointer;background:none;transition:.25s}
+  .step:hover{color:var(--cream)}
+  .step.active{color:var(--graphite);background:linear-gradient(100deg,var(--foil-b),var(--foil-a));border-color:var(--gold)}
+  .step .sn{font-family:var(--mono);color:var(--gold);margin-right:8px}
+  .step.active .sn{color:var(--graphite)}
+  .console-body{display:grid;grid-template-columns:1.2fr .8fr;gap:30px;margin-top:24px;align-items:start}
+  .grid15{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .cell{border:1px solid var(--hair-soft);border-radius:3px;padding:10px 12px;background:var(--panel);transition:.45s ease}
+  .cell .cn{font-family:var(--ui);font-size:12px;color:var(--cream)}
+  .cell .cv{font-family:var(--ui);font-size:10px;letter-spacing:.1em;text-transform:uppercase;margin-top:5px;color:var(--muted)}
+  .cell.good{border-color:rgba(152,167,107,.35)}
+  .cell.good .cv{color:var(--sage)}
+  .cell.fair .cv{color:var(--ochre)}
+  .cell.weak .cv{color:var(--oxblood)}
+  .cell.lit{box-shadow:0 0 0 1px var(--gold),0 6px 20px rgba(216,180,106,.14);border-color:var(--gold)}
+  .cell.dim{opacity:.32;filter:grayscale(.6)}
+  .narr{border:1px solid var(--hair);border-radius:4px;background:linear-gradient(180deg,var(--panel),var(--panel-2));padding:24px}
+  .narr .nk{font-family:var(--ui);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold)}
+  .narr h3{font-size:24px;margin:10px 0 12px}
+  .narr p{font-size:15px;color:var(--cream);margin:0 0 18px}
+
+  footer{border-top:1px solid var(--hair);margin-top:80px;padding:44px 0 0}
+  .foot-in{display:flex;justify-content:space-between;flex-wrap:wrap;gap:24px;align-items:flex-start}
+  .foot-note{font-family:var(--mono);font-size:12px;color:var(--muted)}
+
+  @media(max-width:860px){
+    .hero-grid,.cols2,.money,.console-body{grid-template-columns:1fr}
+    .cols3{grid-template-columns:1fr}
+    .tiers{grid-template-columns:1fr 1fr}
+    .txgrid,.pages{grid-template-columns:1fr 1fr}
+    .grid15{grid-template-columns:1fr 1fr}
+    .hero .drop{font-size:44px}
+  }
+  @media(prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+    .reveal{opacity:1;transform:none}
+    .rule-draw{transform:scaleX(1)}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ MASTHEAD / NAV ============ -->
+<header class="mast">
+  <div class="mast-in">
+    <div class="wordmark">
+      <svg class="tree" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.4" aria-hidden="true">
+        <path d="M12 22V13"/><path d="M12 13 6 8"/><path d="M12 13l6-5"/>
+        <circle cx="12" cy="22" r="1.6" fill="var(--gold)" stroke="none"/>
+        <circle cx="6" cy="8" r="1.6"/><circle cx="18" cy="8" r="1.6"/>
+        <path d="M6 8V3"/><path d="M18 8V3"/>
+        <circle cx="6" cy="3" r="1.3" fill="var(--gold)" stroke="none"/><circle cx="18" cy="3" r="1.3" fill="var(--gold)" stroke="none"/>
+      </svg>
+      <span><span class="re foil shimmer">RE</span>DERIVE</span>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Sections">
+      <button class="tab active" data-page="landing" role="tab" aria-selected="true">Landing</button>
+      <button class="tab" data-page="console" role="tab" aria-selected="false">Console</button>
+      <button class="tab" data-page="integrate" role="tab" aria-selected="false">Integrate</button>
+      <button class="tab" data-page="token" role="tab" aria-selected="false">Token</button>
+    </nav>
+  </div>
+</header>
+
+<!-- ============ LANDING ============ -->
+<main class="page on" id="landing" role="tabpanel">
+
+  <!-- Hero -->
+  <section class="hero">
+    <p class="kicker"><span class="num">Vol. I · No. 24</span> The Memory Dossier</p>
+    <h1 class="drop">Research a project <em>once.</em><br/>Re-check only what <em>changes.</em></h1>
+    <div class="hero-grid">
+      <div>
+        <p class="lede dropcap">An AI reads six sources on a crypto project, files twenty-four findings into <em>Sibyl&nbsp;Memory</em>, and never recomputes an answer it already holds. A due-diligence dossier is a dependency graph — edit one source and only its cone re-derives; the rest is served from memory, for free.</p>
+        <p class="heritage">"Incremental compilation for cognition." — <span class="foil">Watch cognition compile.</span></p>
+      </div>
+      <div class="stat-card reveal">
+        <div class="lab">Re-answer, unchanged dossier</div>
+        <div class="big foil">$0.00</div>
+        <div class="muted" style="font-family:var(--mono);font-size:13px">24 / 24 reused · 0 recomputed</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Problem -->
+  <section class="band reveal">
+    <p class="kicker"><span class="num">§ 01</span> The Problem <span class="rule-draw"></span></p>
+    <h2 class="head">Agents recompute <em>everything,</em> every time.</h2>
+    <div class="cols2">
+      <p class="muted">Ask an agent the same due-diligence question twice and it re-reads every source, re-runs every metric, and re-pays for all of it — as if it had never seen the project before. There is no build cache for reasoning. Cognition is treated as disposable, and the invoice arrives in full on every single call.</p>
+      <p class="muted">Rederive treats a dossier the way a compiler treats a codebase: six sources feed twenty-four content-addressed derivations. Same inputs, same hash — reused, free. New hash — recomputed. A mismatch auto-invalidates the downstream cone. Nothing is recomputed by accident.</p>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section class="band reveal">
+    <p class="kicker"><span class="num">§ 02</span> How It Works <span class="rule-draw"></span></p>
+    <h2 class="head">Reasoning, treated as a <em>build system.</em></h2>
+    <div class="cols3">
+      <article class="figart">
+        <span class="no">i.</span>
+        <h3>A dossier is a DAG</h3>
+        <p>6 sources → 6 extractions → 15 metrics → 3 conclusions. Twenty-four derivations, each addressed by a hash of its own inputs.</p>
+      </article>
+      <article class="figart">
+        <span class="no">ii.</span>
+        <h3>Only the cone re-derives</h3>
+        <p>Change a source and its downstream cone is invalidated. Everything outside the cone is verified-on-serve and returned from memory.</p>
+      </article>
+      <article class="figart">
+        <span class="no">iii.</span>
+        <h3>Built for machines</h3>
+        <p>The real customer is an AI agent, not a human. It calls a metered API and pays per answer with x402 on Base.</p>
+      </article>
+    </div>
+    <p class="pull">A build system for an agent's reasoning.</p>
+  </section>
+
+  <!-- Money shot -->
+  <section class="band reveal">
+    <p class="kicker"><span class="num">§ 03</span> The Money Shot <span class="rule-draw"></span></p>
+    <h2 class="head">Edit one source. Only the <em>cone</em> re-derives.</h2>
+    <p class="lede muted">Uniswap, analyzed cold, costs $0.48 — twenty-four derivations at $0.02 each. Edit the token source and only its cone recomputes.</p>
+    <div class="money">
+      <div class="conewrap">
+        <svg viewBox="0 0 360 240" width="100%" aria-label="Invalidation cone diagram">
+          <!-- edges -->
+          <g stroke="var(--hair)" stroke-width="1.2" fill="none">
+            <path class="edge e-cold" d="M60 40 L180 120"/><path class="edge e-cold" d="M60 80 L180 120"/>
+            <path class="edge e-token" d="M60 120 L180 120"/>
+            <path class="edge e-cold" d="M60 160 L180 120"/><path class="edge e-cold" d="M60 200 L180 120"/>
+            <path class="edge e-token" d="M180 120 L300 70"/>
+            <path class="edge e-token" d="M180 120 L300 120"/>
+            <path class="edge e-token" d="M180 120 L300 170"/>
+          </g>
+          <!-- source nodes -->
+          <g class="nodes">
+            <circle class="node n-cold" cx="60" cy="40" r="7" fill="var(--panel)" stroke="var(--muted)"/>
+            <circle class="node n-cold" cx="60" cy="80" r="7" fill="var(--panel)" stroke="var(--muted)"/>
+            <circle class="node n-token" cx="60" cy="120" r="8" fill="var(--panel)" stroke="var(--gold)"/>
+            <circle class="node n-cold" cx="60" cy="160" r="7" fill="var(--panel)" stroke="var(--muted)"/>
+            <circle class="node n-cold" cx="60" cy="200" r="7" fill="var(--panel)" stroke="var(--muted)"/>
+            <circle class="node n-token" cx="180" cy="120" r="10" fill="var(--panel)" stroke="var(--gold)"/>
+            <circle class="node n-token" cx="300" cy="70" r="7" fill="var(--panel)" stroke="var(--gold)"/>
+            <circle class="node n-token" cx="300" cy="120" r="7" fill="var(--panel)" stroke="var(--gold)"/>
+            <circle class="node n-token" cx="300" cy="170" r="7" fill="var(--panel)" stroke="var(--gold)"/>
+          </g>
+          <text x="52" y="128" font-family="Space Mono" font-size="9" fill="var(--gold)" text-anchor="end">token</text>
+          <text x="300" y="200" font-family="Space Mono" font-size="9" fill="var(--gold)" text-anchor="middle">verdict cone</text>
+        </svg>
+        <button class="btn ghost" id="coneBtn" style="width:100%;margin-top:8px">Toggle the edit ↺</button>
+      </div>
+      <div class="mathcard">
+        <div class="mathrow"><span class="k">Cold run · compute all 24</span><span class="price cold">$0.48</span></div>
+        <div class="mathrow"><span class="k">Re-answer, unchanged</span><span class="price free">$0.00</span></div>
+        <div class="mathrow"><span class="k">Edit token · recompute cone (~7)</span><span class="price warm">~$0.14</span></div>
+        <div class="mathrow"><span class="k">The other 17, reused</span><span class="price free">free</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Deletion test -->
+  <section class="band reveal">
+    <p class="kicker"><span class="num">§ 04</span> The Deletion Test <span class="rule-draw"></span></p>
+    <h2 class="head">The report <em>redacts itself</em> — then is restored.</h2>
+    <p class="lede muted">The answers live in memory. Delete it and the bound report empties to blank pages; the database collapses. Restore, and it returns warm — instantly.</p>
+    <div class="deletion">
+      <div class="pages" id="pages">
+        <div class="leaf"><div class="ln g s"></div><div class="ln"></div><div class="ln"></div><div class="ln s"></div></div>
+        <div class="leaf"><div class="ln"></div><div class="ln g s"></div><div class="ln"></div><div class="ln"></div></div>
+        <div class="leaf"><div class="ln s"></div><div class="ln"></div><div class="ln g"></div><div class="ln"></div></div>
+        <div class="leaf"><div class="ln"></div><div class="ln"></div><div class="ln g s"></div><div class="ln"></div></div>
+        <div class="leaf"><div class="ln g"></div><div class="ln"></div><div class="ln"></div><div class="ln s"></div></div>
+        <div class="leaf"><div class="ln s"></div><div class="ln g"></div><div class="ln"></div><div class="ln"></div></div>
+      </div>
+      <div class="dstat">
+        <div><b id="drecords">24</b> records in memory</div>
+        <div><b id="dsize">471 KB</b> database on disk</div>
+        <div><b id="dstate">Bound &amp; intact</b> dossier state</div>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:22px;flex-wrap:wrap">
+        <button class="btn" id="delBtn">Delete memory</button>
+        <button class="btn ghost" id="restoreBtn">Restore (warm)</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tiers -->
+  <section class="band reveal">
+    <p class="kicker"><span class="num">§ 05</span> Sibyl Memory <span class="rule-draw"></span></p>
+    <h2 class="head">Five tiers. <em>Your agent</em> is the customer.</h2>
+    <p class="lede muted">Every tier is load-bearing — none decorative. Together they let the engine remember, verify, and meter.</p>
+    <div class="tiers">
+      <article class="tier"><div class="t-n">L1</div><h3>WORKING</h3><p>Holds the live run cursor as the dossier compiles.</p></article>
+      <article class="tier"><div class="t-n">L2</div><h3>EPISODIC</h3><p>Stores the 24 derivations that produce reuse hits.</p></article>
+      <article class="tier"><div class="t-n">L3</div><h3>SEMANTIC</h3><p>The extracted facts, distilled from the sources.</p></article>
+      <article class="tier"><div class="t-n">L4</div><h3>PROCEDURAL</h3><p>The pricing + invalidation doctrine the engine consults.</p></article>
+      <article class="tier"><div class="t-n">L5</div><h3>COLD</h3><p>Raw sources with FTS5 keyword recall on demand.</p></article>
+    </div>
+    <p class="muted" style="margin-top:20px;font-size:14.5px">Plus content-addressed records, a multi-tenant commons, and MCP + LangGraph surfaces.</p>
+  </section>
+
+  <!-- On-chain -->
+  <section class="band reveal">
+    <p class="kicker"><span class="num">§ 06</span> On-Chain Proof <span class="rule-draw"></span></p>
+    <h2 class="head">The price computed is the price <em>paid.</em></h2>
+    <p class="lede muted">Real gasless USDC settlements via x402 (EIP-3009) on Base Sepolia. Four verifiable transactions.</p>
+    <div class="txgrid">
+      <a class="tx" href="https://sepolia.basescan.org" target="_blank" rel="noopener"><span class="h">0x10759f3c…</span><span class="go">Verify ↗</span></a>
+      <a class="tx" href="https://sepolia.basescan.org" target="_blank" rel="noopener"><span class="h">0x11ae4043…</span><span class="go">Verify ↗</span></a>
+      <a class="tx" href="https://sepolia.basescan.org" target="_blank" rel="noopener"><span class="h">0x5ed48622…</span><span class="go">Verify ↗</span></a>
+      <a class="tx" href="https://sepolia.basescan.org" target="_blank" rel="noopener"><span class="h">0x92606759…</span><span class="go">Verify ↗</span></a>
+    </div>
+    <p class="contract">Contract <b>0xc211C942946011859ca634F22400d80570ED12A5</b> · sepolia.basescan.org</p>
+  </section>
+
+  <!-- Token teaser -->
+  <section class="band reveal">
+    <p class="kicker"><span class="num">§ 07</span> The Token <span class="rule-draw"></span></p>
+    <h2 class="head">A claim on the <em>metered-memory</em> economy.</h2>
+    <div class="cols2">
+      <p class="muted">Rederive meters memory per answer, settled with x402. Agents are the buyers. As more dossiers are cached and re-served, the token is positioned to capture the metered-memory economy that flows across the commons.</p>
+      <div>
+        <div class="chartwrap"><span class="soon">Chart · coming soon</span></div>
+        <button class="btn solid" style="margin-top:16px" data-goto="token">Read the token thesis →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="band reveal" style="text-align:center">
+    <p class="pull center">Watch cognition compile.</p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <button class="btn solid" data-goto="console">Open the console</button>
+      <button class="btn" data-goto="integrate">Integrate an agent</button>
+    </div>
+  </section>
+
+  <footer>
+    <div class="foot-in">
+      <div class="wordmark"><span class="re foil">RE</span>DERIVE</div>
+      <div class="foot-note">Uniswap dossier · 24 derivations · Base Sepolia · x402 EIP-3009</div>
+    </div>
+  </footer>
+</main>
+
+<!-- ============ CONSOLE ============ -->
+<section class="page" id="console" role="tabpanel">
+  <div class="hero" style="padding-bottom:20px">
+    <p class="kicker"><span class="num">The Reading Room</span> Live Dossier</p>
+    <h2 class="head">The console — <em>Uniswap,</em> step by step.</h2>
+
+    <div class="statusbar">
+      <div class="sb"><div class="l">Project</div><div class="v">Uniswap</div></div>
+      <div class="sb"><div class="l">Verdict</div><div class="v" id="sbVerdict" style="color:var(--sage)">Good</div></div>
+      <div class="sb"><div class="l">Score</div><div class="v mono">78<span class="muted">/100</span></div></div>
+      <div class="sb"><div class="l">Risk</div><div class="v" style="color:var(--ochre)">Moderate</div></div>
+      <div class="sb"><div class="l">In memory</div><div class="v mono" id="sbMem">24/24</div></div>
+    </div>
+
+    <div class="steps" role="tablist" aria-label="Walkthrough steps">
+      <button class="step active" data-step="1"><span class="sn">01</span>What the AI built</button>
+      <button class="step" data-step="2"><span class="sn">02</span>Asking again is free</button>
+      <button class="step" data-step="3"><span class="sn">03</span>Change one thing</button>
+      <button class="step" data-step="4"><span class="sn">04</span>The deletion test</button>
+      <button class="step" data-step="5"><span class="sn">05</span>Who uses it</button>
+    </div>
+
+    <div class="console-body">
+      <div class="grid15" id="grid15"></div>
+      <aside class="narr">
+        <div class="nk" id="narrK">Step 01</div>
+        <h3 id="narrH">What the AI built</h3>
+        <p id="narrP">It read six Uniswap sources — docs, code, token, team, community, audits — and produced 15 checks plus one verdict. Every finding is filed in Sibyl Memory.</p>
+        <div class="mathrow" style="border:none;padding:0;margin-bottom:14px"><span class="k">Run cost</span><span class="price cold" id="narrPrice">$0.48</span></div>
+        <button class="btn solid" id="stepBtn">Run the analysis →</button>
+      </aside>
+    </div>
+  </div>
+  <footer>
+    <div class="foot-in"><div class="wordmark"><span class="re foil">RE</span>DERIVE</div>
+    <div class="foot-note">Status bar reacts to each step · deletion test dramatized in step 04</div></div>
+  </footer>
+</section>
+
+<!-- ============ INTEGRATE ============ -->
+<section class="page" id="integrate" role="tabpanel">
+  <div class="hero" style="padding-bottom:10px">
+    <p class="kicker"><span class="num">Appendix A</span> For Machines</p>
+    <h2 class="head">Your agent is the <em>customer.</em></h2>
+    <p class="lede muted">Three ways to plug an agent into Rederive's metered memory. Pricing is $0.02 per derivation; reused derivations are $0.00. Settlement is x402 on Base.</p>
+
+    <div class="pathblock">
+      <div class="path">
+        <div class="p-n">Path i.</div>
+        <h3>Paid API call <span>x402 on Base</span></h3>
+        <p class="muted">The client pays per call. x402 settles the computed quote at request time; the dossier returns as JSON.</p>
+        <pre class="codeblock"><span class="k">client</span> = <span class="s">x402Client</span>()               <span class="c"># pays per call, on Base</span>
+r = <span class="k">await</span> http.post(<span class="s">".../answer"</span>)   <span class="c"># x402 settles the quote</span>
+dossier = r.json()[<span class="s">"dossier"</span>]       <span class="c"># -&gt; the verdict, as JSON</span></pre>
+      </div>
+
+      <div class="path">
+        <div class="p-n">Path ii.</div>
+        <h3>MCP tool <span>drop-in for Claude</span></h3>
+        <p class="muted">A FastMCP server named "rederive". Point any MCP client at it; the model calls these tools directly, no glue code.</p>
+        <pre class="codeblock"><span class="k">@mcp.tool</span>()
+<span class="k">def</span> get_derivation(node): ...   <span class="c"># get_derivation("s_verdict")</span>
+<span class="k">@mcp.tool</span>()
+<span class="k">def</span> recall(q, limit): ...       <span class="c"># keyword search the memory</span></pre>
+      </div>
+
+      <div class="path">
+        <div class="p-n">Path iii.</div>
+        <h3>LangGraph node <span>inside your workflow</span></h3>
+        <p class="muted">Rederive becomes the memory node inside the agent's own workflow graph.</p>
+        <pre class="codeblock">graph = <span class="s">build_langgraph</span>(engine)
+<span class="c"># Rederive becomes the memory node inside the agent's own workflow</span></pre>
+      </div>
+    </div>
+
+    <p class="pull" style="margin-top:44px">Metered per answer. $0.02 a derivation. Reuse is free.</p>
+  </div>
+  <footer>
+    <div class="foot-in"><div class="wordmark"><span class="re foil">RE</span>DERIVE</div>
+    <div class="foot-note">MCP + LangGraph surfaces · x402 (EIP-3009) settlement on Base</div></div>
+  </footer>
+</section>
+
+<!-- ============ TOKEN ============ -->
+<section class="page" id="token" role="tabpanel">
+  <div class="hero" style="padding-bottom:10px">
+    <p class="kicker"><span class="num">Prospectus</span> The Token</p>
+    <h2 class="head">Rederive captures the <em>metered-memory</em> economy.</h2>
+    <p class="lede dropcap">Every answer an agent buys is metered and settled on-chain with x402. The buyers are machines; the product they pay for is remembered cognition. As dossiers accumulate in a shared commons, each reuse is revenue that never had to be recomputed — a compounding cache of paid answers. The token is designed to sit on that flow.</p>
+
+    <div class="cols3" style="margin-top:40px">
+      <article class="figart"><span class="no">Utility</span><h3>Meter of record</h3><p>Settlement + access to the metered-memory API; the unit that prices a derivation.</p></article>
+      <article class="figart"><span class="no">Why</span><h3>Agents are buyers</h3><p>The real customer is an AI agent paying per answer — demand scales with agent activity, not human seats.</p></article>
+      <article class="figart"><span class="no">Capture</span><h3>Reuse compounds</h3><p>Cached answers re-serve for free to the caller but keep the commons alive; the token captures that economy.</p></article>
+    </div>
+
+    <div class="cols2" style="margin-top:44px;align-items:center">
+      <div>
+        <p class="kicker" style="margin-bottom:14px">Buy · Chart</p>
+        <div class="chartwrap"><span class="soon">Tokenomics &amp; buy · coming soon</span></div>
+        <p class="muted" style="font-size:14px;margin-top:16px">Contract and tokenomics are not live yet — this is an honest placeholder, not a fake listing.</p>
+      </div>
+      <div>
+        <p class="kicker" style="margin-bottom:14px">Links</p>
+        <div class="social">
+          <a href="https://rederive.xyz" target="_blank" rel="noopener">rederive.xyz</a>
+          <a href="#" data-goto="integrate">The API →</a>
+          <a href="https://sepolia.basescan.org" target="_blank" rel="noopener">On-chain · Basescan ↗</a>
+          <a href="https://twitter.com" target="_blank" rel="noopener">X / Twitter</a>
+        </div>
+        <p class="pull" style="margin-top:34px;font-size:26px">The commons remembers. The token meters it.</p>
+      </div>
+    </div>
+  </div>
+  <footer>
+    <div class="foot-in"><div class="wordmark"><span class="re foil">RE</span>DERIVE</div>
+    <div class="foot-note">Honest placeholder · metered-memory thesis · x402 on Base</div></div>
+  </footer>
+</section>
+
+<script>
+/* ---------- Page switching ---------- */
+const tabs=[...document.querySelectorAll('.tab')];
+const pages=[...document.querySelectorAll('.page')];
+function go(id){
+  pages.forEach(p=>p.classList.toggle('on',p.id===id));
+  tabs.forEach(t=>{const a=t.dataset.page===id;t.classList.toggle('active',a);t.setAttribute('aria-selected',a);});
+  window.scrollTo({top:0,behavior:'smooth'});
+  runReveal();
+}
+tabs.forEach(t=>t.addEventListener('click',()=>go(t.dataset.page)));
+document.querySelectorAll('[data-goto]').forEach(el=>el.addEventListener('click',e=>{e.preventDefault();go(el.dataset.goto);}));
+
+/* ---------- Scroll reveal + rule draw ---------- */
+const io=new IntersectionObserver((es)=>{es.forEach(en=>{if(en.isIntersecting)en.target.classList.add('in');});},{threshold:.18});
+function runReveal(){document.querySelectorAll('.page.on .reveal').forEach(r=>{r.classList.remove('in');io.observe(r);});}
+runReveal();
+
+/* ---------- Money-shot cone toggle ---------- */
+let coned=false;
+const coneBtn=document.getElementById('coneBtn');
+coneBtn.addEventListener('click',()=>{
+  coned=!coned;
+  document.querySelectorAll('.n-token').forEach(n=>n.setAttribute('fill',coned?'var(--gold)':'var(--panel)'));
+  document.querySelectorAll('.e-token').forEach(e=>{e.setAttribute('stroke',coned?'var(--gold)':'var(--hair)');e.style.opacity=coned?'1':'.6';});
+  document.querySelectorAll('.n-cold,.e-cold').forEach(n=>n.style.opacity=coned?'.35':'1');
+  coneBtn.textContent=coned?'Edited · token cone re-derived (~$0.14) ↺':'Toggle the edit ↺';
+});
+
+/* ---------- Deletion test ---------- */
+const leaves=[...document.querySelectorAll('#pages .leaf')];
+const drecords=document.getElementById('drecords'),dsize=document.getElementById('dsize'),dstate=document.getElementById('dstate');
+document.getElementById('delBtn').addEventListener('click',()=>{
+  leaves.forEach((l,i)=>{setTimeout(()=>{l.classList.add('redacted');setTimeout(()=>l.classList.add('blank'),260);},i*90);});
+  setTimeout(()=>{
+    drecords.textContent='0';drecords.classList.add('zero');
+    dsize.textContent='4 KB';
+    dstate.textContent='Collapsed';dstate.style.color='var(--oxblood)';
+  },700);
+});
+document.getElementById('restoreBtn').addEventListener('click',()=>{
+  leaves.forEach((l,i)=>{setTimeout(()=>{l.classList.remove('blank');setTimeout(()=>l.classList.remove('redacted'),200);},i*70);});
+  drecords.textContent='24';drecords.classList.remove('zero');
+  dsize.textContent='471 KB';
+  dstate.textContent='Bound & intact';dstate.style.color='var(--cream)';
+});
+
+/* ---------- Console: 15-check grid ---------- */
+const checks=[
+  {g:'Docs & API',n:'Doc quality',v:'good'},
+  {g:'Docs & API',n:'Storage architecture',v:'good'},
+  {g:'Docs & API',n:'API surface',v:'fair'},
+  {g:'Code & team',n:'Commit rate',v:'good'},
+  {g:'Code & team',n:'Test coverage',v:'fair'},
+  {g:'Code & team',n:'Bus factor',v:'weak'},
+  {g:'Code & team',n:'Team track record',v:'good'},
+  {g:'Token',n:'Supply risk',v:'fair'},
+  {g:'Token',n:'Utility',v:'good'},
+  {g:'Token',n:'Liquidity',v:'good'},
+  {g:'Community',n:'Transparency',v:'good'},
+  {g:'Community',n:'Sentiment',v:'fair'},
+  {g:'Community',n:'Growth',v:'good'},
+  {g:'Security',n:'Audit status',v:'good'},
+  {g:'Security',n:'Security incidents',v:'fair'}
+];
+const tokenIdx=[7,8,9]; // token-source cone
+const grid=document.getElementById('grid15');
+checks.forEach((c,i)=>{
+  const d=document.createElement('div');
+  d.className='cell '+c.v;d.dataset.i=i;
+  d.innerHTML=`<div class="cn">${c.n}</div><div class="cv">${c.v}</div>`;
+  grid.appendChild(d);
+});
+const cells=[...grid.children];
+
+const narr={
+  1:{k:'Step 01',h:'What the AI built',p:'It read six Uniswap sources — docs, code, token, team, community, audits — and produced 15 checks plus one verdict. Every finding is filed in Sibyl Memory.',price:'$0.48',pc:'cold',btn:'Run the analysis →',mem:'24/24'},
+  2:{k:'Step 02',h:'Asking again is free',p:'It already did the work and remembers it. Ask the same question again → 0 recomputed. The dossier is served straight from memory.',price:'$0.00',pc:'free',btn:'Ask again (warm) →',mem:'24/24'},
+  3:{k:'Step 03',h:'Change one thing, redo only that',p:'Edit the token source and rebuild. Only the token checks light up and re-derive; you pay ~$0.14, not $0.48. The other 17 are reused, free.',price:'~$0.14',pc:'warm',btn:'Edit token & rebuild →',mem:'21/24'},
+  4:{k:'Step 04',h:'The answers live in memory',p:'Delete the memory and the whole report vanishes — 24 records → 0, the database collapses 471 KB → 4 KB. Restore, and it returns warm. This is the gate moment.',price:'—',pc:'cold',btn:'Delete, then restore →',mem:'0/24'},
+  5:{k:'Step 05',h:'How it remembers, and who uses it',p:'The customer is an AI agent — three integration paths (API · MCP · LangGraph), paying per answer with x402 on Base. Under the hood, five memory layers do the remembering.',price:'$0.02/deriv',pc:'warm',btn:'See integration →',mem:'24/24'}
+};
+const steps=[...document.querySelectorAll('.step')];
+function applyGrid(step){
+  cells.forEach((c,i)=>{c.classList.remove('lit','dim');
+    if(step===3){ tokenIdx.includes(i)?c.classList.add('lit'):c.classList.add('dim'); }
+    else if(step===4){ c.classList.add('dim'); }
+  });
+}
+function setStep(s){
+  steps.forEach(b=>b.classList.toggle('active',+b.dataset.step===s));
+  const d=narr[s];
+  document.getElementById('narrK').textContent=d.k;
+  document.getElementById('narrH').textContent=d.h;
+  document.getElementById('narrP').textContent=d.p;
+  const pr=document.getElementById('narrPrice');pr.textContent=d.price;pr.className='price '+d.pc;
+  document.getElementById('stepBtn').textContent=d.btn;
+  document.getElementById('sbMem').textContent=d.mem;
+  document.getElementById('sbVerdict').textContent = s===4 ? '—' : 'Good';
+  document.getElementById('sbVerdict').style.color = s===4 ? 'var(--oxblood)':'var(--sage)';
+  applyGrid(s);
+}
+steps.forEach(b=>b.addEventListener('click',()=>setStep(+b.dataset.step)));
+document.getElementById('stepBtn').addEventListener('click',()=>{
+  const cur=+document.querySelector('.step.active').dataset.step;
+  setStep(cur>=5?1:cur+1);
+});
+setStep(1);
+</script>
+</body>
+</html>

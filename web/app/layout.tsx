@@ -1,13 +1,8 @@
 // File: web/app/layout.tsx
 import "./globals.css";
-import { Inter, IBM_Plex_Mono } from "next/font/google";
+import type { Metadata } from "next";
 
-const sans = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
-const mono = IBM_Plex_Mono({
-  subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-mono", display: "swap",
-});
-
-export const metadata = {
+export const metadata: Metadata = {
   metadataBase: new URL("https://rederive.xyz"),
   title: "Rederive — incremental compilation for cognition",
   description: "Agent-consumable due-diligence memory that re-derives only what changed. Built on Sibyl Memory + x402 on Base.",
@@ -28,7 +23,21 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${sans.variable} ${mono.variable}`}>
+    <html lang="en">
+      <head>
+        {/* Obsidian Foundry fonts — Clash Display + Satoshi (Fontshare), JetBrains Mono (Google) */}
+        <link rel="preconnect" href="https://api.fontshare.com" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        <link
+          rel="stylesheet"
+          href="https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&f[]=satoshi@300,400,500,700&display=swap"
+        />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap"
+        />
+      </head>
       <body>{children}</body>
     </html>
   );

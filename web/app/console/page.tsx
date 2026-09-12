@@ -31,6 +31,7 @@ const tone = (s: string) => /low|strong|deep|high|full|none|distributed|positive
   : /poor|thin|weak|concentrated|declining|negative|high risk|avoid/i.test(s) ? "bad" : "mid";
 const VERDICT: Record<string, string> = { good: "Good", bad: "Weak", mid: "Fair" };
 const kb = (b?: number) => (b == null ? "—" : b < 1024 ? `${b} B` : `${(b / 1024).toFixed(0)} KB`);
+const fp8 = (fp?: string | null) => (fp ? fp.slice(0, 7) : "—");   // content-address: same hash = reused, new hash = recomputed
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 type Anim = "hold" | "calc" | "flip";
 
@@ -176,6 +177,13 @@ export default function Console() {
                 {a === "hold" && <div className="rc-m-note reuse">↺ reused from memory · unchanged</div>}
                 {a === "flip" && <div className="rc-m-note derive">✎ just redone · answer changed</div>}
                 {absent && <div className="rc-m-note none">no answer in memory</div>}
+                <div className="rc-m-fp">
+                  {absent
+                    ? <span className="fp none">no record</span>
+                    : <span className={`fp ${a === "flip" ? "new" : a === "hold" ? "same" : ""}`}>#{fp8(n?.fp)}</span>}
+                  {a === "hold" && <span className="fp-tag reuse">reused · same hash</span>}
+                  {a === "flip" && <span className="fp-tag derive">re-derived · new hash</span>}
+                </div>
               </div>
             );
           })}
@@ -187,8 +195,19 @@ export default function Console() {
   return (
     <div className="lab">
       <nav className="nav">
-        <span className="nav-brand"><img className="nav-logo" src="/logo.png" alt="Rederive" /><b>RE</b>DERIVE</span>
-        <span className="nav-right"><Link className="nav-link" href="/">home</Link></span>
+        <span className="nav-brand">
+          <img className="nav-logo" src="/logo.png" alt="Rederive" />
+          <b>RE</b>DERIVE
+        </span>
+        <span className="nav-right">
+          <span className="nav-tabs">
+            <Link className="nav-link" href="/">Home</Link>
+            <Link className="nav-link active" href="/console">Console</Link>
+            <Link className="nav-link" href="/integrate">Integrate</Link>
+            <Link className="nav-link" href="/token">Token</Link>
+          </span>
+          <Link className="btn" href="/">Home →</Link>
+        </span>
       </nav>
 
       <div className="wt-wrap">
