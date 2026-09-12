@@ -15,9 +15,11 @@ ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN", "")
 app = FastAPI(title="Rederive")
 from fastapi.middleware.cors import CORSMiddleware
 
-# CORS (§6D): ALWAYS allow localhost dev origins; ADD any comma-separated CORS_ORIGIN(s) for prod.
-# Union (not replace) so a prod CORS_ORIGIN never breaks local dev on :3000.
-_default_origins = ["http://localhost:3000", "http://localhost:3001", "https://rederive.vercel.app"]
+# CORS (§6D): ALWAYS allow localhost dev origins + the production domains; ADD any comma-separated
+# CORS_ORIGIN(s) for prod. Union (not replace) so a prod CORS_ORIGIN never breaks local dev on :3000.
+# rederive.xyz is the canonical live domain — keep it in the defaults so a stale CORS_ORIGIN can't break it.
+_default_origins = ["http://localhost:3000", "http://localhost:3001",
+                    "https://rederive.vercel.app", "https://rederive.xyz", "https://www.rederive.xyz"]
 _cors_env = os.environ.get("CORS_ORIGIN")
 _allow_origins = sorted(set(_default_origins) | {o.strip() for o in (_cors_env or "").split(",") if o.strip()})
 app.add_middleware(CORSMiddleware, allow_origins=_allow_origins,
